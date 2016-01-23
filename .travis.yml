@@ -1,0 +1,12 @@
+language: scala
+scala:
+- 2.11.7
+jdk:
+  - oraclejdk8
+before_script: cd backend
+deploy:
+  provider: heroku
+  api_key:
+    secure: rWmpvWp+gZVPu4WXfhIUcUygmdrsn4GqZDFf1tZcbYiKRgdUTq7najHwJApXcF623PJYPu85edjZLjltCK2tZifqw6kovehh+Fx+Io+wPBvnA5eZaDQlIezpv5vyc3MsktLMkur9YO6t45tQkBRpSyol7GwCqjTbKeeUICBQaq4Mu4eZ8McbjrPB51yjFA6lODx1t1IP+o1ottCUlrhQfc94rlXcJ0OwHoy4H1kSwdPtBVyGBVwaSY9wN9SSy7N2CQCMEGPZUEY98VYOKZQyHFQCOeGQ3dDL2+Vk1qYwKJrJIsOtuO9g7ETJdccL6j2TrZpS1U6VGPoZnBW9xMDZh/GLZ8rTOx+kPEB3vi6/cLP7LLSQUjSqO3e57Tuep8f2XTzzyigh6tAXCceCFgJb45vNOFgrXFAZi75ybb1H2qnTyk5f/OVeqGRr77gW1nmLcjlothDCnjPssxLxCh6h6H4r3s/mfpCuTjMkuw4f9ix5XNcB4VUj9oErmRlw5IsL8v8wZtPQir1NEOfqfVAm/XAaIy1WoeW/WSiIaMuy3RHMQGZrz7RId2r+Y02FMzjJzDTwMEP2ezzdCcKs4mJVQJKuAAboIk4g33AfCqGp7UvZX1we06WcDHYvecVyX0sW9G68Z/vW9XmHvBHSHlECgMQWJlRMQp5dHRIi5dzUbkk=
+  app: connectusnow-staging
+  strategy: git
