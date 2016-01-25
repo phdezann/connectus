@@ -1,4 +1,4 @@
-package org.company.exampleapp;
+package org.connectus;
 
 import org.junit.Test;
 

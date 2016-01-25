@@ -15,3 +15,29 @@
 #-keepclassmembers class fqcn.of.javascript.interface.for.webview {
 #   public *;
 #}
+
+-keepattributes Signature
+-keepattributes *Annotation*
+
+-keep class org.connectus.** { *; }
+-keep class rx.internal.util.unsafe.** { *; }
+-keep class retrofit.http.** { *; }
+
+-dontwarn java.**
+-dontwarn javax.**
+-dontwarn sun.misc.**
+-dontwarn android.net.http.**
+-dontwarn org.joda.convert.**
+-dontwarn com.google.appengine.api.urlfetch.**
+-dontwarn com.google.android.gms.**
+-dontwarn org.apache.http.**
+-dontwarn org.w3c.dom.bootstrap.**
+-dontwarn dagger.internal.**
+-dontwarn retrofit.client.**
+-dontwarn com.jcraft.jzlib.**
+-dontwarn org.ietf.**
+-dontwarn com.squareup.**
+
+-dontwarn org.junit.**
+-dontwarn org.codehaus.mojo.**
+-dontwarn org.assertj.**
