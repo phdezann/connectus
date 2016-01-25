@@ -1,0 +1,24 @@
+#!/bin/bash
+
+set -e
+
+function wait-for-lock-screen {
+  echo "Waiting for the android operating system to initialize itself"
+  while ! adb shell ps 2> /dev/null | grep android.process.acore &> /dev/null
+  do
+    sleep 5
+    echo "."
+  done
+  echo "The emulator is now fully initialized"
+}
+
+function unlock-screen {
+  adb shell input keyevent KEYCODE_POWER
+  adb shell input keyevent KEYCODE_MENU
+}
+
+android create avd -n testavd -t 'Google Inc.:Google APIs:19' --abi default/armeabi-v7a
+emulator64-arm -avd testavd -no-skin -no-audio -no-window &
+adb wait-for-device
+wait-for-lock-screen
+unlock-screen

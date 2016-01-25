@@ -44,17 +44,10 @@ android {
     }
     signingConfigs {
         release {
-            if (System.getenv()["CI"]) {
-                storeFile file(System.getenv()["KEYSTORE_PATH"])
-                storePassword System.getenv()["KEYSTORE_PASSWORD"]
-                keyAlias System.getenv()["KEY_ALIAS"]
-                keyPassword System.getenv()["KEY_PASSWORD"]
-            } else {
-                storeFile file(System.properties['user.home'] + "/.android-private/connectus-release.keystore")
-                storePassword "secret"
-                keyAlias "release"
-                keyPassword "secret"
-            }
+            storeFile file("$System.env.ANDROID_RELEASE_KEYSTORE_PATH")
+            storePassword "$System.env.ANDROID_RELEASE_KEYSTORE_PASSWORD"
+            keyAlias "$System.env.ANDROID_RELEASE_KEY_ALIAS"
+            keyPassword "$System.env.ANDROID_RELEASE_KEY_PASSWORD"
         }
     }
     buildTypes {
@@ -80,18 +73,8 @@ android {
 }
 
 play {
-    if (System.getenv()["CI"]) {
-        jsonFile = file(System.getenv()["PLAY_PUBLISHER_ACCOUNT_PATH"])
-    } else {
-        jsonFile = file(System.properties['user.home'] + "/.android-private/connectus-play-publisher-account.json")
-    }
+    jsonFile = file("$System.env.ANDROID_PLAY_PUBLISHER_SERVICE_ACCOUNT_JSON_PATH")
     track = 'alpha'
-}
-
-dependencies {
-    compile fileTree(dir: 'libs', include: ['*.jar'])
-    testCompile 'junit:junit:4.12'
-    compile 'com.android.support:appcompat-v7:23.1.1'
 }
 
 dependencies {

@@ -1,15 +1,13 @@
-language: scala
-scala:
-- 2.11.7
-jdk:
-  - oraclejdk8
-before_script: cd backend
-deploy:
-  provider: heroku
-  api_key:
-    secure: rWmpvWp+gZVPu4WXfhIUcUygmdrsn4GqZDFf1tZcbYiKRgdUTq7najHwJApXcF623PJYPu85edjZLjltCK2tZifqw6kovehh+Fx+Io+wPBvnA5eZaDQlIezpv5vyc3MsktLMkur9YO6t45tQkBRpSyol7GwCqjTbKeeUICBQaq4Mu4eZ8McbjrPB51yjFA6lODx1t1IP+o1ottCUlrhQfc94rlXcJ0OwHoy4H1kSwdPtBVyGBVwaSY9wN9SSy7N2CQCMEGPZUEY98VYOKZQyHFQCOeGQ3dDL2+Vk1qYwKJrJIsOtuO9g7ETJdccL6j2TrZpS1U6VGPoZnBW9xMDZh/GLZ8rTOx+kPEB3vi6/cLP7LLSQUjSqO3e57Tuep8f2XTzzyigh6tAXCceCFgJb45vNOFgrXFAZi75ybb1H2qnTyk5f/OVeqGRr77gW1nmLcjlothDCnjPssxLxCh6h6H4r3s/mfpCuTjMkuw4f9ix5XNcB4VUj9oErmRlw5IsL8v8wZtPQir1NEOfqfVAm/XAaIy1WoeW/WSiIaMuy3RHMQGZrz7RId2r+Y02FMzjJzDTwMEP2ezzdCcKs4mJVQJKuAAboIk4g33AfCqGp7UvZX1we06WcDHYvecVyX0sW9G68Z/vW9XmHvBHSHlECgMQWJlRMQp5dHRIi5dzUbkk=
-  app: connectusnow-staging
-  strategy: git
+sudo: required
+services: docker
+before_install:
+- sudo apt-get update
+- sudo apt-get install docker-engine # to get docker 1.9.1 installed
+- openssl aes-256-cbc -K $encrypted_b96fd4fff813_key -iv $encrypted_b96fd4fff813_iv -in .private/data.tar.enc -out .private/data.tar -d
+- tar xvf .private/data.tar -C .private
+script:
+- ./dockerized-build
+- ./dockerized-deploy
 notifications:
   slack:
     secure: UFJ/Ohpw3sOCIrsEQmTHCIOvWG3ISYUKefYuVC662Rgelon84690qVtEW+BXI51IQMLS1b4GiofofvoRZzGF6kzl4vI6FcNpf9wojP1sSL/VwvtrtFVwGZ502gVR0zh/nMeESLsNMfapPAdZ/IllSj4haLxQXQ9C3GpcYkjuj4zgmMllhC2jhWdDoG0jhlBse15b8gKgWMv6Hq5JKJHz85EDs9KWj91zGmC2J+1Yixo8ysTJeI18PlfcCIamfJKkkHRhL3gjc5KKFv0Dp6drxvUJtmrEvSwFgaP69WCQX9T/5nNkGu4kvVYY1pr3494xYMJX9YUg4uBbASygGAB+8HO6ESpU2/Ar3trd8AZHA2Pc9aqylXYR0MeXWyDWbM0zSQwhoCjW5rLxdvRBizr5s+hazGbSbjtJFTYJ35S5nuH5ga3qJfoh9p2PQQhIxR1TVr0NG067WHeJGvxUUW/F24dgiTgJjDeods9Fybeslk4U0UivL18fvubceA9ttm992S5G2PlW06VkUSv5amxw+56Nyq8C4x0PB/7m3eypFU97mEkzRUy2XK6EmgFWMtchOY42MVaYH3kmPdNLzwzjyVj+h2gMKZolp/JsgYWg7K6LAlrQU8v6+QreaIa8XdaVv3WWfdqnRGiyIuQ7hrNg+T7a/Q/D+7/QddeSvFi+luU=

@@ -1,0 +1,9 @@
+#!/bin/bash
+
+set -e
+mkdir ~/.ssh
+cp $HEROKU_SSH_KEY_PATH ~/.ssh
+ssh-keyscan heroku.com > ~/.ssh/known_hosts
+echo 'IdentityFile ~/.ssh/id_rsa-travisci-4-heroku' > ~/.ssh/config
+git remote add heroku git@heroku.com:connectusnow-staging.git || true
+git push heroku master -f
