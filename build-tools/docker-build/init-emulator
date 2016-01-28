@@ -4,7 +4,7 @@ set -e
 
 function wait-for-lock-screen {
   echo "Waiting for the android operating system to initialize itself"
-  while ! adb shell ps 2> /dev/null | grep android.process.acore &> /dev/null
+  while adb shell ps 2> /dev/null | grep /system/bin/bootanimation &> /dev/null
   do
     sleep 5
     echo "."
