@@ -5,9 +5,7 @@ before_install:
 - sudo apt-get install docker-engine # to get docker 1.9.1 installed
 - openssl aes-256-cbc -K $encrypted_b96fd4fff813_key -iv $encrypted_b96fd4fff813_iv -in .private/data.tar.enc -out .private/data.tar -d
 - tar xvf .private/data.tar -C .private
-script:
-- ./dockerized-build
-- ./dockerized-deploy
+script: ./dockerized-build && ./dockerized-deploy
 branches:
   only:
     - master
