@@ -15,6 +15,6 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
 
     public void testUi() {
         getActivity();
-        onView(withText("Hello World!")).check(matches(isDisplayed()));
+        onView(withText("Hello World you!")).check(matches(isDisplayed()));
     }
 }
