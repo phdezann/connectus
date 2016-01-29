@@ -3,11 +3,11 @@ FROM ubuntu:16.04
 ARG USER_UID=1000
 ARG USER_GID=1000
 
-RUN apt-get update -y -q                                                                    \
-    && apt-get install -y -q wget git-core                                                  \
-    && apt-get install -y -q openjdk-7-jdk openjdk-7-source openjdk-8-jdk openjdk-8-source  \
-    && apt-get install -y -q gcc-multilib lib32ncurses5 lib32z1                             \
-    && apt-get clean                                                                        \
+RUN apt-get update -y -q                                                                       \
+    && apt-get install -y -q wget curl git-core net-tools socat dosfstools iputils-ping netcat \
+    && apt-get install -y -q openjdk-7-jdk openjdk-7-source openjdk-8-jdk openjdk-8-source     \
+    && apt-get install -y -q gcc-multilib lib32ncurses5 lib32z1                                \
+    && apt-get clean                                                                           \
     && rm -rf /var/lib/apt/lists/*
 
 ENV JAVA8_HOME /usr/lib/jvm/java-8-openjdk-amd64
