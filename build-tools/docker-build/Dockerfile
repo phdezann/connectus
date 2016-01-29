@@ -63,3 +63,4 @@ RUN echo "-ivy      /data/sbt/ivy2" >> /opt/sbt/conf/sbtopts
 
 ADD init-emulator /usr/local/bin/
 ADD deploy-to-heroku /usr/local/bin/
+ADD config.ini /home/connectus
