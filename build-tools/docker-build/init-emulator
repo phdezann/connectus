@@ -13,8 +13,8 @@ function wait-for-lock-screen {
 }
 
 function unlock-screen {
-  adb shell input tap 1220 420
-  adb shell input tap 1200 737
+  adb shell input tap 638 706
+  adb shell input tap 191 226
   adb shell input keyevent KEYCODE_HOME
 }
 
