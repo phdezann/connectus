@@ -11,6 +11,8 @@ buildscript {
 }
 
 apply plugin: 'com.android.application'
+// This does not break the build when Android Studio is missing the JRebel for Android plugin.
+apply plugin: 'com.zeroturnaround.jrebel.android'
 apply plugin: 'me.tatarka.retrolambda'
 apply plugin: 'com.google.gms.google-services'
 apply plugin: 'com.github.ben-manes.versions'
@@ -34,7 +36,7 @@ android {
 
         def longVersionName = "git -C ${rootDir} describe --tags --long".execute().text.trim()
         def (fullVersionTag, versionBuild, gitSha) = longVersionName.tokenize('-')
-        def(versionMajor, versionMinor, versionPatch) = fullVersionTag.tokenize('.')
+        def (versionMajor, versionMinor, versionPatch) = fullVersionTag.tokenize('.')
 
         versionName "$versionMajor.$versionMinor.$versionPatch($versionBuild)"
         versionCode versionMajor.toInteger() * 100000 +
@@ -55,6 +57,12 @@ android {
             minifyEnabled false
             multiDexEnabled true
         }
+        jrebel {
+            debuggable true
+            signingConfig signingConfigs.debug
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
         release {
             signingConfig signingConfigs.release
             minifyEnabled true
@@ -62,7 +70,9 @@ android {
         }
     }
     packagingOptions {
+        exclude 'META-INF/LICENSE'
         exclude 'META-INF/LICENSE.txt'
+        exclude 'META-INF/NOTICE'
         exclude 'META-INF/NOTICE.txt'
         exclude 'NOTICE'
         exclude 'asm-license.txt'
@@ -92,7 +102,9 @@ dependencies {
             'io.reactivex:rxjava:1.0.15',
             'io.reactivex:rxandroid:1.0.1',
             'org.slf4j:slf4j-jdk14:1.7.12',
-            'org.slf4j:slf4j-api:1.7.12'
+            'org.slf4j:slf4j-api:1.7.12',
+            'com.firebase:firebase-client-android:2.5.0',
+            'com.firebaseui:firebase-ui:0.2.2'
 
     testCompile 'junit:junit:4.12',
             'org.robolectric:robolectric:3.0',
