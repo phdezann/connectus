@@ -1,35 +1,195 @@
 package org.connectus;
 
+import android.accounts.AccountManager;
 import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.ListView;
-import com.firebase.client.AuthData;
+import android.widget.TextView;
 import com.firebase.client.Firebase;
-import com.firebase.client.FirebaseError;
+import com.google.android.gms.auth.UserRecoverableAuthException;
+import com.google.android.gms.auth.api.Auth;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
+import com.google.android.gms.auth.api.signin.GoogleSignInResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.common.base.Throwables;
+import lombok.extern.slf4j.Slf4j;
+import org.connectus.model.Message;
+import org.connectus.support.NoOpObservable.NoOp;
+import rx.Observable;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.schedulers.Schedulers;
+import rx.subscriptions.CompositeSubscription;
 
+import javax.inject.Inject;
+
+@Slf4j
 public class MainActivity extends Activity {
+
+    static final int RC_GOOGLE_LOGIN = 1;
+    static final int OAUTH_PERMISSIONS = 2;
+
+    GoogleApiClient mGoogleApiClient;
+    CompositeSubscription subs = new CompositeSubscription();
+
+    @Inject
+    Toaster toaster;
+    @Inject
+    LoginOrchestrator loginOrchestrator;
+    @Inject
+    EnvironmentHelper environmentHelper;
+    @Inject
+    UserRepository userRepository;
+    @Inject
+    FirebaseFacade firebaseFacade;
+
+    Firebase ref;
+    Firebase.AuthStateListener mAuthListener;
+    TextView connectedUser;
+    ListView messagesListView;
+    private Message selection;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(org.connectus.R.layout.activity_main);
+        ((ConnectusApplication) getApplication()).getComponent().inject(this);
+        setContentView(R.layout.activity_login);
 
-        ListView messages = (ListView) findViewById(R.id.list_view_message);
+        findViewById(R.id.login_with_google).setOnClickListener(view -> onSignInGooglePressed());
+        connectedUser = (TextView) findViewById(R.id.connected_user);
 
-        Firebase ref = new Firebase("https://connectusnow.firebaseio.com/messages");
-        /** TODO: This won't be necessary after setting up authentication **/
-        ref.authWithCustomToken("LhonDAsWp0nFkL2wF0lD4gMwebJBSemmoZhM1CLG", new Firebase.AuthResultHandler() {
-            @Override
-            public void onAuthenticated(AuthData authData) {
-                System.out.println(authData);
+        findViewById(R.id.logout).setOnClickListener(view -> logout());
+        messagesListView = (ListView) findViewById(R.id.list_view_message);
+
+        GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN) //
+                .requestEmail() //
+                .build();
+
+        mGoogleApiClient = new GoogleApiClient.Builder(this) //
+                .addApi(Auth.GOOGLE_SIGN_IN_API, gso) //
+                .build();
+
+        if (environmentHelper.isNotInTest()) {
+            mGoogleApiClient.connect();
+            ref = new Firebase(FirebaseFacadeConstants.getRootUrl());
+            mAuthListener = authData -> {
+                if (authData == null) {
+                    logout();
+                }
+            };
+            ref.addAuthStateListener(mAuthListener);
+        }
+
+        if (userRepository.isUserLoggedIn()) {
+            onLoginSuccess();
+        }
+    }
+
+    public void addResidentAndAddContact(String residentName) {
+        firebaseFacade.addResident(userRepository.getUserEmail(), residentName);
+    }
+
+    public void onAddContact(String residentId) {
+        String emailOfContact = selection.getFrom();
+        firebaseFacade.addContact(userRepository.getUserEmail(), residentId, emailOfContact);
+    }
+
+    public void onSignInGooglePressed() {
+        Intent signInIntent = Auth.GoogleSignInApi.getSignInIntent(mGoogleApiClient);
+        startActivityForResult(signInIntent, RC_GOOGLE_LOGIN);
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == RC_GOOGLE_LOGIN) { // callback after interacting with the google plus accounts popup
+            GoogleSignInResult result = Auth.GoogleSignInApi.getSignInResultFromIntent(data);
+            if (resultCode == RESULT_CANCELED) { // the user dismissed the popup for choosing the google plus account
+                onLoginError();
+            } else if (result.isSuccess()) {
+                String googleAccountEmail = result.getSignInAccount().getEmail();
+                subscribe(loginOrchestrator.loginAndCheckRefreshToken(googleAccountEmail) //
+                        .onErrorResumeNext(e -> askOAuthPermissionsOnUserRecoverableAuthException(e)));
             }
-
-            @Override
-            public void onAuthenticationError(FirebaseError firebaseError) {
-                System.out.println(firebaseError);
+        } else if (requestCode == OAUTH_PERMISSIONS) { // callback after interacting with the oauth permissions screen
+            if (resultCode == RESULT_CANCELED) { // permissions have been denied by the user
+                onLoginError();
+            } else if (resultCode == RESULT_OK) {
+                Bundle bundle = data.getExtras();
+                String googleAccountEmail = bundle.getString(AccountManager.KEY_ACCOUNT_NAME);
+                String authorizationToken = bundle.getString(AccountManager.KEY_AUTHTOKEN);
+                subscribe(loginOrchestrator.setupOfflineAccess(googleAccountEmail, authorizationToken));
             }
+        }
+    }
+
+    private void subscribe(Observable<NoOp> obs) {
+        subs.add(obs.subscribeOn(Schedulers.io()) //
+                .observeOn(AndroidSchedulers.mainThread()) //
+                .subscribe(authData -> {
+                    onLoginSuccess();
+                }, e -> {
+                    e.printStackTrace();
+                    toaster.toast("Error: " + Throwables.getStackTraceAsString(e));
+                }));
+    }
+
+    private Observable<NoOp> askOAuthPermissionsOnUserRecoverableAuthException(Throwable e) {
+        return e instanceof UserRecoverableAuthException ? askOAuthPermissions((UserRecoverableAuthException) e) : Observable.error(e);
+    }
+
+    private Observable<NoOp> askOAuthPermissions(UserRecoverableAuthException urae) {
+        return Observable.create(s -> {
+            Intent recover = urae.getIntent();
+            startActivityForResult(recover, OAUTH_PERMISSIONS);
+            s.onCompleted();
         });
-        MessageAdapter adapter = new MessageAdapter(this, Message.class, R.layout.message_list_item, ref);
-        messages.setAdapter(adapter);
+    }
+
+    private void onLoginSuccess() {
+        messagesListView.setVisibility(View.VISIBLE);
+
+        if (environmentHelper.isNotInTest()) {
+            Firebase ref = new Firebase(FirebaseFacadeConstants.getAdminMessagesUrl(FirebaseFacade.encode(userRepository.getUserEmail())));
+            MessageAdapter adapter = new MessageAdapter(this, Message.class, R.layout.message_list_item, ref);
+            messagesListView.setAdapter(adapter);
+
+            messagesListView.setOnItemClickListener((parent, view, position, id) -> {
+                selection = adapter.getItem(position);
+                new ResidentListDialogFragment().show(getFragmentManager(), ResidentListDialogFragment.class.getSimpleName());
+            });
+        }
+
+        toaster.toast(getString(R.string.on_logging_success));
+        connectedUser.setText(userRepository.getUserEmail());
+    }
+
+    private void onLoginError() {
+        toaster.toast(getString(R.string.on_login_error));
+    }
+
+    private void logout() {
+        ref.unauth();
+        if (mGoogleApiClient.isConnected()) {
+            Auth.GoogleSignInApi.signOut(mGoogleApiClient).setResultCallback(status -> {});
+        }
+        userRepository.clearUserInfo();
+        onLogoutSuccess();
+    }
+
+    private void onLogoutSuccess() {
+        connectedUser.setText("");
+        messagesListView.setVisibility(View.INVISIBLE);
+    }
+
+    @Override
+    public void onDestroy() {
+        if (environmentHelper.isNotInTest()) {
+            ref.removeAuthStateListener(mAuthListener);
+            mGoogleApiClient.disconnect();
+        }
+        subs.unsubscribe();
+        super.onDestroy();
     }
 }

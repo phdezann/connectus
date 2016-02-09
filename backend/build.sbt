@@ -13,9 +13,10 @@ libraryDependencies ++= Seq(
   "com.google.api-client" % "google-api-client" % "1.21.0",
   "javax.mail" % "mail" % "1.4.7",
   "com.firebase" % "firebase-client-jvm" % "2.5.0",
+  "org.scalatest" %% "scalatest" % "2.2.6" % "test",
   cache,
   ws,
-  "org.scalatest" %% "scalatest" % "2.2.6" % "test"
+  specs2 % Test
 )
 
 dependencyOverrides ++= Set(

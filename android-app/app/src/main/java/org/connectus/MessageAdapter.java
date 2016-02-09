@@ -6,6 +6,7 @@ import android.widget.TextView;
 import com.firebase.client.Firebase;
 import com.firebase.ui.FirebaseListAdapter;
 import org.apache.commons.lang3.StringUtils;
+import org.connectus.model.Message;
 
 public class MessageAdapter extends FirebaseListAdapter<Message> {
     public MessageAdapter(Activity activity, Class<Message> modelClass, int modelLayout, Firebase ref) {

@@ -22,6 +22,9 @@
 -keep class org.connectus.** { *; }
 -keep class rx.internal.util.unsafe.** { *; }
 -keep class retrofit.http.** { *; }
+-keep class com.firebase.** { *; }
+
+-keepnames class com.fasterxml.jackson.** { *; }
 
 -dontwarn java.**
 -dontwarn javax.**
@@ -37,6 +40,8 @@
 -dontwarn com.jcraft.jzlib.**
 -dontwarn org.ietf.**
 -dontwarn com.squareup.**
+-dontwarn org.joda.time.**
+-dontwarn org.shaded.apache.**
 
 -dontwarn org.junit.**
 -dontwarn org.codehaus.mojo.**

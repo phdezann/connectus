@@ -13,4 +13,5 @@ package object common {
     }
     promise.future
   }
+  type Email = String
 }

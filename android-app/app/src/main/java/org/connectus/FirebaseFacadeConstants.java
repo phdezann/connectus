@@ -1,0 +1,49 @@
+package org.connectus;
+
+public class FirebaseFacadeConstants {
+
+    public static String OAUTH_GOOGLE_PROVIDER = "google";
+    public static int AUTHORIZATION_CODE_SERVER_PROCESSING_TIMEOUT_IN_SECONDS = 10;
+    public static int LOGIN_TIMEOUT_IN_SECONDS = 5;
+    public static String LOGIN_CODE_SUCCESS = "SUCCESS";
+    public static String LOGIN_CODE_INVALID_GRANT = "INVALID_GRANT";
+    public static String ANDROID_ID_PATH = "android_id";
+    public static String AUTHORIZATION_CODE_PATH = "authorization_code";
+    public static String CODE_PATH = "code";
+    public static String MESSAGE_PATH = "message";
+
+    public static String RESIDENT_NAME_PROPERTY = "name";
+    public static String CONTACT_EMAIL_PROPERTY = "email";
+
+    public static String getRootUrl() {
+        return BuildConfig.FIREBASE_ROOT_URL;
+    }
+
+    public static String getAuthorizationCodesUrl() {
+        return getRootUrl() + "/authorization_codes";
+    }
+
+    public static String getAuthorizationIdUrl(String authorizationId) {
+        return String.format("%s/%s", getAuthorizationCodesUrl(), authorizationId);
+    }
+
+    public static String getReportUrl(String authorizationId) {
+        return String.format("%s/trade_log", getAuthorizationIdUrl(authorizationId));
+    }
+
+    public static String getRefreshTokenUrl(String encodedEmail) {
+        return String.format("%s/users/%s/refresh_token", getRootUrl(), encodedEmail);
+    }
+
+    public static String getAdminMessagesUrl(String encodedEmail) {
+        return String.format("%s/messages/%s/admin", getRootUrl(), encodedEmail);
+    }
+
+    public static String getResidentsUrl(String encodedEmail) {
+        return String.format("%s/residents/%s", getRootUrl(), encodedEmail);
+    }
+
+    public static String getContactsUrl(String encodedEmail, String residentId) {
+        return String.format("%s/contacts/%s/%s", getRootUrl(), encodedEmail, residentId);
+    }
+}

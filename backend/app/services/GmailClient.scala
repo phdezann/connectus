@@ -4,6 +4,7 @@ import java.io._
 import java.nio.charset.Charset
 import java.time.ZonedDateTime
 import java.time.format.DateTimeParseException
+import java.util
 import javax.inject.{Singleton, Inject}
 
 import _root_.support.AppConf
@@ -33,7 +34,6 @@ import scala.concurrent.Future
 
 object Utils {
   val ApplicationName = "Connectus"
-  val StaticLabels = List("INBOX", "IMPORTANT", "CATEGORY_UPDATES", "DRAFT", "UNREAD", "CATEGORY_PERSONAL", "SENT")
   val Scopes = newArrayList(GMAIL_COMPOSE, GMAIL_MODIFY)
   val transport = new NetHttpTransport
   val factory = new JacksonFactory
@@ -58,6 +58,13 @@ class GoogleAuthorization @Inject()(appConf: AppConf, dataStoreFactory: Abstract
     tokenResponse.setRefreshToken(refreshToken)
     flow.createAndStoreCredential(tokenResponse, userId)
   }
+
+  def convert(authorisationCode: String): Future[GoogleTokenResponse] = {
+    val request: GoogleAuthorizationCodeTokenRequest = flow.newTokenRequest(authorisationCode)
+    // as specified in https://developers.google.com/identity/protocols/CrossClientAuth, the redirect_uri argument must be equal to null
+    request.set("redirect_uri", null)
+    Future {concurrent.blocking {request.execute()}}
+  }
 }
 
 class GmailClient @Inject()(appConf: AppConf, googleAuthorization: GoogleAuthorization) {
@@ -71,6 +78,62 @@ class GmailClient @Inject()(appConf: AppConf, googleAuthorization: GoogleAuthori
     new Gmail.Builder(Utils.transport, Utils.factory, credential).setApplicationName(Utils.ApplicationName).build
 
   type email = String
+
+  def watch(userId: String): Future[WatchResponse] = {
+    for {
+      gmail <- getService(userId)
+      watchResponse <- callWatch(gmail)
+    } yield watchResponse
+  }
+
+  private def callWatch(gmail: Gmail): Future[WatchResponse] =
+    Future {
+      concurrent.blocking {
+        val request = gmail.users.watch("me", new WatchRequest().setTopicName(appConf.getGmailTopic))
+        request.execute
+      }
+    }
+
+  def listLabels(userId: String): Future[List[Label]] =
+    for {
+      gmail <- getService(userId)
+      label <- listLabels(gmail)
+    } yield label
+
+  private def listLabels(gmail: Gmail): Future[List[Label]] =
+    Future {
+      concurrent.blocking {
+        val labels = gmail.users().labels().list("me").execute.getLabels
+        Option(labels).fold[List[Label]](List())(_.asScala.toList)
+      }
+    }
+
+  def createLabel(userId: String, labelName: String): Future[Label] =
+    for {
+      gmail <- getService(userId)
+      label <- createLabel(gmail, labelName)
+    } yield label
+
+  private def createLabel(gmail: Gmail, labelName: String): Future[Label] =
+    Future {
+      concurrent.blocking {
+        val label = new Label().setName(labelName).setLabelListVisibility("labelShow").setMessageListVisibility("show")
+        gmail.users().labels().create("me", label).execute
+      }
+    }
+
+  def addLabel(userId: String, query: String, label: Label): Future[List[Message]] =
+    for {
+      gmail <- getService(userId)
+      partialMessages <- fetchMessages(gmail, query)
+      messages <- addLabel(gmail, partialMessages, label)
+    } yield messages
+
+  private def addLabel(gmail: Gmail, partialMessages: List[Message], label: Label): Future[List[Message]] = {
+    val modifyMessageRequest = new ModifyMessageRequest().setAddLabelIds(List(label.getId).asJava)
+    val requests = partialMessages.map(pm => gmail.users().messages().modify("me", pm.getId, modifyMessageRequest))
+    executeBatch(gmail, requests.toList)
+  }
 
   def listMessagesNoCache(userId: String, query: String) = listMessages(userId, query)
 
@@ -153,16 +216,9 @@ class GmailClient @Inject()(appConf: AppConf, googleAuthorization: GoogleAuthori
       val subjectOpt = getHeader(headers, "Subject")
       val contentOpt = getContentAsText(message) map (_.trim)
       val historyId = new java.math.BigDecimal(message.getHistoryId)
-      val labelNames = toLabelNames(message.getLabelIds.asScala.toList, labels)
+      val labelIds = message.getLabelIds.asScala.toList
       val complete = dateOpt.isDefined && fromOpt.isDefined && subjectOpt.isDefined && contentOpt.isDefined
-      GmailMessage(message.getId, dateOpt, fromOpt, toOpt, subjectOpt, contentOpt, historyId, message.getThreadId, labelNames, complete)
-    }
-
-    private def toLabelNames(labelIdsOfMessage: List[String], labels: Map[String, Label]): List[String] = {
-      val staticLabelsIdToNameMap = Utils.StaticLabels.map(labelName => labelName -> labelName).toMap
-      val labelsIdToNameMap = labels.map { case (labelId, label) => (labelId, label.getName) }
-      val completeIdToNameMap = staticLabelsIdToNameMap ++ labelsIdToNameMap
-      labelIdsOfMessage map (completeIdToNameMap(_))
+      GmailMessage(message.getId, dateOpt, fromOpt, toOpt, subjectOpt, contentOpt, historyId, message.getThreadId, labelIds, complete)
     }
 
     private def getHeader(headers: List[MessagePartHeader], headerNameIgnoreCase: String): Option[String] =
