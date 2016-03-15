@@ -6,6 +6,8 @@ lazy val root = (project in file(".")).enablePlugins(PlayScala)
 
 scalaVersion := "2.11.7"
 
+resolvers += "scalaz-bintray" at "https://dl.bintray.com/scalaz/releases"
+
 libraryDependencies ++= Seq(
   "com.google.apis" % "google-api-services-gmail" % "v1-rev36-1.21.0",
   "com.google.api-client" % "google-api-client" % "1.21.0",
