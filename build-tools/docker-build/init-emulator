@@ -13,14 +13,17 @@ function wait-for-lock-screen {
 }
 
 function unlock-screen {
-  adb shell input tap 638 706
-  adb shell input tap 191 226
+  adb shell input swipe 927 495 1200 495 250
+  adb shell input tap 1195 735
+  adb shell input tap 1220 420
+  adb shell input tap 1195 735
   adb shell input keyevent KEYCODE_HOME
 }
 
 android create avd -n testavd -t 'Google Inc.:Google APIs:19'
 cp /home/connectus/config.ini $ANDROID_SDK_HOME/.android/avd/testavd.avd/config.ini
-emulator64-arm -avd testavd -no-skin -no-audio -no-window &
+mksdcard 50M /home/connectus/sdcard
+emulator64-arm -avd testavd -sdcard /home/connectus/sdcard -gpu off -no-skin -no-audio -no-window &
 adb wait-for-device
 wait-for-lock-screen
 unlock-screen
