@@ -13,5 +13,5 @@ case class NotificationMessage(data: String, message_id: String)
 case class Notification(message: NotificationMessage, subscription: String)
 case class GmailNotificationMessage(historyId: Long, emailAddress: String)
 
-case class Resident(id: String, name: String, labelId: Option[String])
+case class Resident(id: String, name: String, labelName: String, labelId: Option[String])
 case class Contact(email: Email, residentId: String)

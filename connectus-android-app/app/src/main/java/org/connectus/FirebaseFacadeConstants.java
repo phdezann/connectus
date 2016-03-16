@@ -13,6 +13,7 @@ public class FirebaseFacadeConstants {
     public static String MESSAGE_PATH = "message";
 
     public static String RESIDENT_NAME_PROPERTY = "name";
+    public static String RESIDENT_LABEL_NAME_PROPERTY = "labelName";
     public static String CONTACT_EMAIL_PROPERTY = "email";
 
     public static String getRootUrl() {

@@ -47,7 +47,7 @@ public class LoginOrchestratorTest extends RobolectricTestBase {
         Mockito.when(googleAuthUtilWrapper.getAuthorizationCode(Mockito.any())).thenReturn(Observable.error(new UserRecoverableAuthException("", new Intent())));
 
         try {
-            loginOrchestrator.setupOfflineAccess(Constants.FAKE_GMAIL_COM).toBlocking().single();
+            loginOrchestrator.firstPassSetupOfflineAccess(Constants.FAKE_GMAIL_COM).toBlocking().single();
             fail("Should have failed");
         } catch (Exception e) {
             assertThat(e).hasRootCauseInstanceOf(UserRecoverableAuthException.class);
@@ -61,7 +61,7 @@ public class LoginOrchestratorTest extends RobolectricTestBase {
         Mockito.when(googleAuthUtilWrapper.getAuthorizationCode(Mockito.any())).thenReturn(Observable.just(Constants.FAKE_AUTHORIZATION_CODE));
         Mockito.when(firebaseFacade.sendCredentials(Mockito.any())).thenReturn(NoOpObservable.justNoOp());
 
-        NoOpObservable.NoOp single = loginOrchestrator.setupOfflineAccess(Constants.FAKE_GMAIL_COM).toBlocking().single();
+        NoOpObservable.NoOp single = loginOrchestrator.firstPassSetupOfflineAccess(Constants.FAKE_GMAIL_COM).toBlocking().single();
         assertThat(single).isEqualTo(NoOpObservable.noOp());
     }
 
@@ -75,7 +75,7 @@ public class LoginOrchestratorTest extends RobolectricTestBase {
                 .thenReturn(Observable.error(new FirebaseFacade.ExpiredAuthorizationCodeException(new FirebaseFacade.TokenTradeReport("FAKE_ERROR_CODE", Optional.absent()), Constants.FAKE_AUTHORIZATION_CODE))) //
                 .thenReturn(NoOpObservable.justNoOp());
 
-        NoOpObservable.NoOp single = loginOrchestrator.setupOfflineAccess(Constants.FAKE_GMAIL_COM).toBlocking().single();
+        NoOpObservable.NoOp single = loginOrchestrator.firstPassSetupOfflineAccess(Constants.FAKE_GMAIL_COM).toBlocking().single();
 
         Mockito.verify(firebaseFacade, Mockito.times(2)).sendCredentials(Mockito.any());
         Mockito.verify(googleAuthUtilWrapper).clearToken(Mockito.any());

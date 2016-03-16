@@ -18,38 +18,11 @@ class GmailClientTest extends FunSuite {
   ignore("draft") {
     val fileDataStoreFactory: FileDataStoreFactory = new FileDataStoreFactory(new File("/tmp/datastore"))
     val injector = new GuiceApplicationBuilder().overrides(
-      bind[AbstractDataStoreFactory].toInstance(fileDataStoreFactory)).build
+      bind[AbstractDataStoreFactory].toInstance(fileDataStoreFactory)).build.injector
 
-    val injector1: Injector = injector.injector
-    val authorization: GoogleAuthorization = injector1.instanceOf[GoogleAuthorization]
+    val authorization: GoogleAuthorization = injector.instanceOf[GoogleAuthorization]
     authorization.addCredentials("connectus777@gmail.com", "REFRESH_TOKEN")
 
-    val gmailClient = injector1.instanceOf[GmailClient]
-    val messages: List[GmailMessage] = Await.result(gmailClient.listMessages("connectus777@gmail.com", "label:inbox"), Duration.Inf)
-
-
-    val firebaseRef = new Firebase("https://connectusnow.firebaseio.com")
-    firebaseRef.authWithCustomToken("firebase_secret", new AuthResultHandler {
-      override def onAuthenticated(authData: AuthData) = println("onAuthenticated " + authData)
-      override def onAuthenticationError(firebaseError: FirebaseError): Unit = println("onAuthenticationError " + firebaseError)
-    })
-
-    messages.foreach(message => {
-      val child: Firebase = firebaseRef.child("messages").child(message.id)
-      child.child("subject").setValue(message.subject.get, new CompletionListener {
-        override def onComplete(firebaseError: FirebaseError, firebase: Firebase) = {
-          println(firebaseError)
-          println(firebase)
-        }
-      })
-      child.child("content").setValue(message.content.get, new CompletionListener {
-        override def onComplete(firebaseError: FirebaseError, firebase: Firebase) = {
-          println(firebaseError)
-          println(firebase)
-        }
-      })
-    })
-
-    Thread.sleep(10000)
+    val gmailClient = injector.instanceOf[GmailClient]
   }
 }

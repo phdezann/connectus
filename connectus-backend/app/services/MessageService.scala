@@ -24,9 +24,13 @@ object MessageService {
   def allMessagesLabel = s"label:$InboxLabelName"
 
   private def buildContactQuery(contacts: List[Contact]) =
-    contacts
-      .map(contact => "from:" + contact.email)
-      .mkString("(", " OR ", ")")
+    if (contacts.isEmpty) {
+      "label:no-contact"
+    } else {
+      contacts
+        .map(contact => "from:" + contact.email)
+        .mkString("(", " OR ", ")")
+    }
 
   def toLabel(resident: Resident) = resident.name
 }
@@ -74,42 +78,50 @@ class MessageService @Inject()(gmailClient: GmailClient, firebaseFacade: Firebas
     for {
       (connectusLabel, residentLabels) <- initAllLabels
       _ <- doLabelMessages(connectusLabel, residentLabels)
-      _ <- updateMessages(email)
+      _ <- updateMessages(email, residentLabels)
     } yield ()
   }
 
-  def updateMessages(email: Email) = {
+  def updateMessages(email: Email, residentLabels: Map[Resident, Label]) = {
     for {
-      _ <- saveMessagesForResidents(email)
-      _ <- saveMessagesForAdmin(email)
+      _ <- saveMessagesForResidents(email, residentLabels)
+      _ <- saveMessagesForAdmin(email, residentLabels)
     } yield ()
   }
 
-  private def saveMessagesForResidents(email: Email) =
+  private def saveMessagesForResidents(email: Email, residentLabels: Map[Resident, Label]) =
     firebaseFacade.getResidentsAndContacts(email).flatMap { residents =>
       val all: Iterable[Future[Unit]] = residents.map { case (resident, contacts) =>
         val query = MessageService.messagesLabel(contacts)
         listNewMessages(email, query)
-          .map {toMap(email, resident.id, _)}
+          .map {toMap(email, resident.id, _, residentLabels)}
           .flatMap(firebaseFacade.saveMessages(_))
       }
       Future.sequence(all)
     }
 
-  private def saveMessagesForAdmin(email: Email) = {
+  private def saveMessagesForAdmin(email: Email, residentLabels: Map[Resident, Label]) = {
     val query = MessageService.allMessagesLabel
     listNewMessages(email, query)
-      .map {toMap(email, "admin", _)}
+      .map {toMap(email, "admin", _, residentLabels)}
       .flatMap(firebaseFacade.saveMessages(_))
   }
 
-  private def toMap(email: Email, owner: String, messages: List[GmailMessage]): Map[String, AnyRef] =
+  private def toMap(email: Email, owner: String, messages: List[GmailMessage], residentLabels: Map[Resident, Label]): Map[String, AnyRef] =
     messages.flatMap { message =>
-      val labels = message.labels.map { label => s"messages/${Util.encode(email)}/${owner}/${message.id}/labels/${label.id}" -> label.name }.toMap
-      Map(
+      val labelsAsMap = message.labels.map { label => s"messages/${Util.encode(email)}/${owner}/${message.id}/labels/${label.id}" -> label.name }.toMap
+      val residentAsMap = residentLabels
+        .find { case (resident, label) => message.labels.find(gmailLabel => gmailLabel.name == label.getName).isDefined }
+        .map { case (resident, label) =>
+          Map(
+            s"messages/${Util.encode(email)}/${owner}/${message.id}/resident/${resident.id}/${firebaseFacade.ResidentNameProperty}" -> resident.name,
+            s"messages/${Util.encode(email)}/${owner}/${message.id}/resident/${resident.id}/${firebaseFacade.ResidentLabelNameProperty}" -> resident.labelName)
+        }.fold(Map[String, AnyRef]())(identity)
+      val messagesAsMap = Map(
         s"messages/${Util.encode(email)}/${owner}/${message.id}/from" -> message.from.get.address,
         s"messages/${Util.encode(email)}/${owner}/${message.id}/subject" -> message.subject.get,
-        s"messages/${Util.encode(email)}/${owner}/${message.id}/content" -> message.content.get) ++ labels
+        s"messages/${Util.encode(email)}/${owner}/${message.id}/content" -> message.content.get)
+      labelsAsMap ++ residentAsMap ++ messagesAsMap
     }.toMap
 
   private def getOrCreate(email: Email, filter: Label => Boolean, labelName: String): Future[Label] = {

@@ -19,6 +19,11 @@ class MessageServiceTest extends FunSuiteLike with Mockito {
     assert(MessageService.newMessagesLabel(contacts) == "label:inbox -label:connectus (from:contact1@provider.com OR from:contact2@provider.com)")
   }
 
+  test("buildContactQuery with empty contact list") {
+    val contacts = List()
+    assert(MessageService.newMessagesLabel(contacts) == "label:inbox -label:connectus label:no-contact")
+  }
+
   test("label removed manually") {
     val gmailClient = mock[GmailClient]
     val firebaseFacade = mock[FirebaseFacade]
@@ -28,8 +33,8 @@ class MessageServiceTest extends FunSuiteLike with Mockito {
       .build
 
     val accountId = "me@gmail.com"
-    val roger = Resident("robert", "Roger", Some("Label_50"))
-    val robert = Resident("robert", "Robert", Some("Label_51"))
+    val roger = Resident("1", "roger", "Roger", Some("Label_50"))
+    val robert = Resident("2", "robert", "Robert", Some("Label_51"))
     val residents = Map(roger -> List(), robert -> List())
 
     when(firebaseFacade.getResidentsAndContacts(any)) thenReturn fs(residents)

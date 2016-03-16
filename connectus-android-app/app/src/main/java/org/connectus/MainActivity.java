@@ -16,6 +16,7 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.common.base.Throwables;
 import lombok.extern.slf4j.Slf4j;
 import org.connectus.model.Message;
+import org.connectus.model.Resident;
 import org.connectus.support.NoOpObservable.NoOp;
 import rx.Observable;
 import rx.android.schedulers.AndroidSchedulers;
@@ -79,6 +80,7 @@ public class MainActivity extends Activity {
                 }
             };
             ref.addAuthStateListener(mAuthListener);
+            setupMessageAdapter();
         }
 
         if (userRepository.isUserLoggedIn()) {
@@ -87,7 +89,7 @@ public class MainActivity extends Activity {
     }
 
     public void addResidentAndAddContact(String residentName) {
-        firebaseFacade.addResident(userRepository.getUserEmail(), residentName);
+        firebaseFacade.addResident(userRepository.getUserEmail(), residentName, Resident.deriveLabelName(residentName));
     }
 
     public void onAddContact(String residentId) {
@@ -119,7 +121,7 @@ public class MainActivity extends Activity {
                 Bundle bundle = data.getExtras();
                 String googleAccountEmail = bundle.getString(AccountManager.KEY_ACCOUNT_NAME);
                 String authorizationToken = bundle.getString(AccountManager.KEY_AUTHTOKEN);
-                subscribe(loginOrchestrator.setupOfflineAccess(googleAccountEmail, authorizationToken));
+                subscribe(loginOrchestrator.secondPassSetupOfflineAccess(googleAccountEmail, authorizationToken));
             }
         }
     }
@@ -127,9 +129,7 @@ public class MainActivity extends Activity {
     private void subscribe(Observable<NoOp> obs) {
         subs.add(obs.subscribeOn(Schedulers.io()) //
                 .observeOn(AndroidSchedulers.mainThread()) //
-                .subscribe(authData -> {
-                    onLoginSuccess();
-                }, e -> {
+                .subscribe(authData -> onLoginSuccess(), e -> {
                     e.printStackTrace();
                     toaster.toast("Error: " + Throwables.getStackTraceAsString(e));
                 }));
@@ -149,7 +149,11 @@ public class MainActivity extends Activity {
 
     private void onLoginSuccess() {
         messagesListView.setVisibility(View.VISIBLE);
+        toaster.toast(getString(R.string.on_logging_success));
+        connectedUser.setText(userRepository.getUserEmail());
+    }
 
+    private void setupMessageAdapter() {
         if (environmentHelper.isNotInTest()) {
             Firebase ref = new Firebase(FirebaseFacadeConstants.getAdminMessagesUrl(FirebaseFacade.encode(userRepository.getUserEmail())));
             MessageAdapter adapter = new MessageAdapter(this, Message.class, R.layout.message_list_item, ref);
@@ -160,9 +164,6 @@ public class MainActivity extends Activity {
                 new ResidentListDialogFragment().show(getFragmentManager(), ResidentListDialogFragment.class.getSimpleName());
             });
         }
-
-        toaster.toast(getString(R.string.on_logging_success));
-        connectedUser.setText(userRepository.getUserEmail());
     }
 
     private void onLoginError() {

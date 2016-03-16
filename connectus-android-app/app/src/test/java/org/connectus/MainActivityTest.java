@@ -77,7 +77,7 @@ public class MainActivityTest extends RobolectricTestBase {
         MainActivity activity = Robolectric.setupActivity(MainActivity.class);
 
         Mockito.when(environmentHelper.isInTest()).thenReturn(true);
-        Mockito.when(loginOrchestrator.setupOfflineAccess(Mockito.anyString(), Mockito.anyString())).thenReturn(NoOpObservable.justNoOp());
+        Mockito.when(loginOrchestrator.secondPassSetupOfflineAccess(Mockito.anyString(), Mockito.anyString())).thenReturn(NoOpObservable.justNoOp());
         Mockito.when(userRepository.getUserEmail()).thenReturn(Constants.FAKE_GMAIL_COM);
 
         Intent intent = new Intent();

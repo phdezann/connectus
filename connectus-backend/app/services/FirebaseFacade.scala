@@ -34,7 +34,9 @@ class FirebaseFacade @Inject()(appConf: AppConf) {
   val ResidentsPath = "residents"
   val ContactsPath = "contacts"
   val ContactEmailProperty = "email"
+  val ResidentIdProperty = "id"
   val ResidentNameProperty = "name"
+  val ResidentLabelNameProperty = "labelName"
   val ResidentLabelIdProperty = "labelId"
 
   val LoginCodeSuccess = "SUCCESS"
@@ -144,10 +146,11 @@ class FirebaseFacade @Inject()(appConf: AppConf) {
   def getResidentsAndContacts(email: Email): Future[Map[Resident, List[Contact]]] = {
     def asResidents(snapshot: DataSnapshot): List[Resident] =
       snapshot.getChildren.asScala.toList.map { snapshot =>
-        val residentId = snapshot.getKey
+        val id = snapshot.getKey
         val name = snapshot.child(ResidentNameProperty).getValue.asInstanceOf[String]
+        val labelName = snapshot.child(ResidentLabelNameProperty).getValue.asInstanceOf[String]
         val labelIdOpt = Option(snapshot.child(ResidentLabelIdProperty).getValue.asInstanceOf[String])
-        Resident(residentId, name, labelIdOpt)
+        Resident(id, name, labelName, labelIdOpt)
       }
 
     def asContacts(snapshot: DataSnapshot): List[Contact] = {

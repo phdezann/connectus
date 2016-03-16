@@ -56,9 +56,12 @@ public class FirebaseFacade {
         }
     }
 
-    public void addResident(String email, String name) {
+    public void addResident(String email, String name, String labelName) {
         Firebase ref = new Firebase(FirebaseFacadeConstants.getResidentsUrl(encode(email)));
-        ref.push().child(FirebaseFacadeConstants.RESIDENT_NAME_PROPERTY).setValue(name);
+        Map<String, Object> values = Maps.newHashMap();
+        values.put(FirebaseFacadeConstants.RESIDENT_NAME_PROPERTY, name);
+        values.put(FirebaseFacadeConstants.RESIDENT_LABEL_NAME_PROPERTY, labelName);
+        ref.push().updateChildren(values);
     }
 
     public void addContact(String email, String residentId, String emailOfContact) {
