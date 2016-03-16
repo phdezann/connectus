@@ -68,8 +68,7 @@ public class LoginOrchestrator {
         return accountManagerUtil.findAccount(email) //
                 .flatMap(account -> googleAuthUtilWrapper.getAndroidId(account)) //
                 .map(androidId -> new LoginCredentials(androidId, authToken)) //
-                .flatMap(creds -> firebaseFacade.sendCredentials(creds)) //
-                .retryWhen(expiredAuthorizationCode());
+                .flatMap(creds -> firebaseFacade.sendCredentials(creds));
     }
 
     // this gives one chance to obtain a new authorization code if an ExpiredAuthorizationCodeException has been thrown
