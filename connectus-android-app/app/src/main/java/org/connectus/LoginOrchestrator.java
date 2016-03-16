@@ -45,7 +45,7 @@ public class LoginOrchestrator {
         return firebaseLogin(email).timeout(FirebaseFacadeConstants.LOGIN_TIMEOUT_IN_SECONDS, TimeUnit.SECONDS, firebaseLogin(email)) //
                 .flatMap(authData -> persistUserInfo(authData)) //
                 .flatMap(authData -> firebaseFacade.isRefreshTokenAvailable(email)) //
-                .flatMap(refreshTokenAvailable -> refreshTokenAvailable ? justNoOp() : setupOfflineAccess(email));
+                .flatMap(refreshTokenAvailable -> refreshTokenAvailable ? justNoOp() : firstPassSetupOfflineAccess(email));
     }
 
     protected Observable<AuthData> firebaseLogin(String email) {
@@ -54,7 +54,7 @@ public class LoginOrchestrator {
                 .flatMap(accessToken -> firebaseFacade.loginWithGoogle(accessToken));
     }
 
-    protected Observable<NoOp> setupOfflineAccess(String email) {
+    protected Observable<NoOp> firstPassSetupOfflineAccess(String email) {
         return accountManagerUtil.findAccount(email) //
                 .flatMap(account -> Observable.zip( //
                         googleAuthUtilWrapper.getAndroidId(account), //
@@ -64,7 +64,7 @@ public class LoginOrchestrator {
                 .retryWhen(expiredAuthorizationCode());
     }
 
-    protected Observable<NoOp> setupOfflineAccess(String email, String authToken) {
+    protected Observable<NoOp> secondPassSetupOfflineAccess(String email, String authToken) {
         return accountManagerUtil.findAccount(email) //
                 .flatMap(account -> googleAuthUtilWrapper.getAndroidId(account)) //
                 .map(androidId -> new LoginCredentials(androidId, authToken)) //
