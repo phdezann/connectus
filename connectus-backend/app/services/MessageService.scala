@@ -105,10 +105,11 @@ class MessageService @Inject()(gmailClient: GmailClient, firebaseFacade: Firebas
 
   private def toMap(email: Email, owner: String, messages: List[GmailMessage]): Map[String, AnyRef] =
     messages.flatMap { message =>
+      val labels = message.labels.map { label => s"messages/${Util.encode(email)}/${owner}/${message.id}/labels/${label.id}" -> label.name }.toMap
       Map(
         s"messages/${Util.encode(email)}/${owner}/${message.id}/from" -> message.from.get.address,
         s"messages/${Util.encode(email)}/${owner}/${message.id}/subject" -> message.subject.get,
-        s"messages/${Util.encode(email)}/${owner}/${message.id}/content" -> message.content.get)
+        s"messages/${Util.encode(email)}/${owner}/${message.id}/content" -> message.content.get) ++ labels
     }.toMap
 
   private def getOrCreate(email: Email, filter: Label => Boolean, labelName: String): Future[Label] = {

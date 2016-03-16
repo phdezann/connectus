@@ -4,7 +4,8 @@ import java.time.ZonedDateTime
 
 import common.Email
 
-case class GmailMessage(id: String, date: Option[ZonedDateTime], from: Option[InternetAddress], to: Option[InternetAddress], subject: Option[String], content: Option[String], historyId: BigDecimal, threadId: String, labelIds: List[String], complete: Boolean)
+case class GmailLabel(id: String, name: String)
+case class GmailMessage(id: String, date: Option[ZonedDateTime], from: Option[InternetAddress], to: Option[InternetAddress], subject: Option[String], content: Option[String], historyId: BigDecimal, threadId: String, labels: List[GmailLabel], complete: Boolean)
 case class InternetAddress(address: String, personal: Option[String])
 
 // gmail's webhook

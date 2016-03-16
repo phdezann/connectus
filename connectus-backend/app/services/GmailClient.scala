@@ -25,7 +25,7 @@ import com.google.api.services.gmail.GmailScopes._
 import com.google.api.services.gmail.model._
 import com.google.common.collect.Lists._
 import common._
-import model.{GmailMessage, InternetAddress}
+import model.{GmailLabel, GmailMessage, InternetAddress}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
@@ -216,7 +216,7 @@ class GmailClient @Inject()(appConf: AppConf, googleAuthorization: GoogleAuthori
       val subjectOpt = getHeader(headers, "Subject")
       val contentOpt = getContentAsText(message) map (_.trim)
       val historyId = new java.math.BigDecimal(message.getHistoryId)
-      val labelIds = message.getLabelIds.asScala.toList
+      val labelIds = message.getLabelIds.asScala.toList.map(labelId => toGmailLabels(labels, labelId)).flatten
       val complete = dateOpt.isDefined && fromOpt.isDefined && subjectOpt.isDefined && contentOpt.isDefined
       GmailMessage(message.getId, dateOpt, fromOpt, toOpt, subjectOpt, contentOpt, historyId, message.getThreadId, labelIds, complete)
     }
@@ -307,5 +307,10 @@ class GmailClient @Inject()(appConf: AppConf, googleAuthorization: GoogleAuthori
       // message.getPayload.getParts can be null
       Option(message.getPayload.getParts).fold[List[MessagePart]](List())(_.asScala.toList)
     }
+
+    def toGmailLabels(labels: Map[String, Label], labelId: String) =
+      labels
+        .find { case (id, label) => id == labelId }
+        .map { case (id, label) => GmailLabel(label.getId, label.getName) }
   }
 }
