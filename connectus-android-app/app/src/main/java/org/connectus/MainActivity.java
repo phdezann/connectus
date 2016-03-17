@@ -151,10 +151,11 @@ public class MainActivity extends Activity {
         messagesListView.setVisibility(View.VISIBLE);
         toaster.toast(getString(R.string.on_logging_success));
         connectedUser.setText(userRepository.getUserEmail());
+        setupMessageAdapter();
     }
 
     private void setupMessageAdapter() {
-        if (environmentHelper.isNotInTest()) {
+        if (userRepository.isUserLoggedIn()) {
             Firebase ref = new Firebase(FirebaseFacadeConstants.getAdminMessagesUrl(FirebaseFacade.encode(userRepository.getUserEmail())));
             MessageAdapter adapter = new MessageAdapter(this, Message.class, R.layout.message_list_item, ref);
             messagesListView.setAdapter(adapter);
