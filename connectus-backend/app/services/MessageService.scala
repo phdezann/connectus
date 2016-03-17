@@ -50,7 +50,7 @@ class MessageService @Inject()(gmailClient: GmailClient, firebaseFacade: Firebas
   def tagInbox(email: Email) = {
     val residents: Future[Map[Resident, List[Contact]]] = firebaseFacade.getResidentsAndContacts(email)
     def initConnectusLabel: Future[Label] = getOrCreate(email, _.getName == MessageService.ConnectusLabelName, MessageService.ConnectusLabelName)
-    def initLabel(resident: Resident): Future[Label] = getOrCreate(email, label => resident.labelId.fold(false)(labelId => label.getId == labelId), resident.name)
+    def initLabel(resident: Resident): Future[Label] = getOrCreate(email, label => resident.labelId.fold(false)(labelId => label.getId == labelId), MessageService.ConnectusLabelName + "/" + resident.name)
     def addLabel(query: String, label: Label): Future[_] = gmailClient.addLabel(email, query, label)
     def saveResidentLabelId(resident: Resident, label: Label): Future[Unit] = firebaseFacade.addResidentLabelId(email, resident.id, label.getId)
     def initAllResidentLabels: Future[Map[Resident, Label]] = residents.flatMap { residents =>
@@ -114,9 +114,10 @@ class MessageService @Inject()(gmailClient: GmailClient, firebaseFacade: Firebas
         .find { case (resident, label) => message.labels.find(gmailLabel => gmailLabel.name == label.getName).isDefined }
         .map { case (resident, label) =>
           Map(
-            s"messages/${Util.encode(email)}/${owner}/${message.id}/resident/${resident.id}/${firebaseFacade.ResidentNameProperty}" -> resident.name,
-            s"messages/${Util.encode(email)}/${owner}/${message.id}/resident/${resident.id}/${firebaseFacade.ResidentLabelNameProperty}" -> resident.labelName)
-        }.fold(Map[String, AnyRef]())(identity)
+            s"messages/${Util.encode(email)}/${owner}/${message.id}/resident/${firebaseFacade.ResidentIdProperty}" -> resident.id,
+            s"messages/${Util.encode(email)}/${owner}/${message.id}/resident/${firebaseFacade.ResidentNameProperty}" -> resident.name,
+            s"messages/${Util.encode(email)}/${owner}/${message.id}/resident/${firebaseFacade.ResidentLabelNameProperty}" -> resident.labelName)
+        }.fold(Map[String, AnyRef](s"messages/${Util.encode(email)}/${owner}/${message.id}/resident" -> null))(identity)
       val messagesAsMap = Map(
         s"messages/${Util.encode(email)}/${owner}/${message.id}/from" -> message.from.get.address,
         s"messages/${Util.encode(email)}/${owner}/${message.id}/subject" -> message.subject.get,

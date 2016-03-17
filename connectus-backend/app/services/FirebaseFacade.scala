@@ -33,7 +33,6 @@ class FirebaseFacade @Inject()(appConf: AppConf) {
   val UsersPath = "users"
   val ResidentsPath = "residents"
   val ContactsPath = "contacts"
-  val ContactEmailProperty = "email"
   val ResidentIdProperty = "id"
   val ResidentNameProperty = "name"
   val ResidentLabelNameProperty = "labelName"
@@ -158,7 +157,7 @@ class FirebaseFacade @Inject()(appConf: AppConf) {
         val residentId = residentSnapshot.getKey
         val contacts: List[DataSnapshot] = residentSnapshot.getChildren.asScala.toList
         contacts.map { contact =>
-          val email = contact.child(ContactEmailProperty).getValue.asInstanceOf[String]
+          val email = Util.decode(contact.getKey)
           Contact(email, residentId)
         }
       }
@@ -178,6 +177,7 @@ class FirebaseFacade @Inject()(appConf: AppConf) {
 
 object Util {
   def encode(email: Email) = email.replace('.', ',')
+  def decode(email: Email) = email.replace(',', '.')
 }
 
 object FutureWrappers {

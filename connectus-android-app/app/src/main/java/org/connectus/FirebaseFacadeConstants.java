@@ -12,9 +12,9 @@ public class FirebaseFacadeConstants {
     public static String CODE_PATH = "code";
     public static String MESSAGE_PATH = "message";
 
+    public static String RESIDENT_ID_PROPERTY = "id";
     public static String RESIDENT_NAME_PROPERTY = "name";
     public static String RESIDENT_LABEL_NAME_PROPERTY = "labelName";
-    public static String CONTACT_EMAIL_PROPERTY = "email";
 
     public static String getRootUrl() {
         return BuildConfig.FIREBASE_ROOT_URL;
@@ -44,7 +44,7 @@ public class FirebaseFacadeConstants {
         return String.format("%s/residents/%s", getRootUrl(), encodedEmail);
     }
 
-    public static String getContactsUrl(String encodedEmail, String residentId) {
-        return String.format("%s/contacts/%s/%s", getRootUrl(), encodedEmail, residentId);
+    public static String getContactsUrl(String encodedEmail) {
+        return String.format("%s/contacts/%s", getRootUrl(), encodedEmail);
     }
 }

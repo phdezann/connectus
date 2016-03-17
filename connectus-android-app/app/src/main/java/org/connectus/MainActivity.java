@@ -13,6 +13,7 @@ import com.google.android.gms.auth.api.Auth;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.auth.api.signin.GoogleSignInResult;
 import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import lombok.extern.slf4j.Slf4j;
 import org.connectus.model.Message;
@@ -92,9 +93,9 @@ public class MainActivity extends Activity {
         firebaseFacade.addResident(userRepository.getUserEmail(), residentName, Resident.deriveLabelName(residentName));
     }
 
-    public void onAddContact(String residentId) {
+    public void onAddContact(String residentId, Optional<String> previousBoundResidentId) {
         String emailOfContact = selection.getFrom();
-        firebaseFacade.addContact(userRepository.getUserEmail(), residentId, emailOfContact);
+        firebaseFacade.updateContact(userRepository.getUserEmail(), residentId, emailOfContact, previousBoundResidentId);
     }
 
     public void onSignInGooglePressed() {
@@ -162,7 +163,13 @@ public class MainActivity extends Activity {
 
             messagesListView.setOnItemClickListener((parent, view, position, id) -> {
                 selection = adapter.getItem(position);
-                new ResidentListDialogFragment().show(getFragmentManager(), ResidentListDialogFragment.class.getSimpleName());
+
+                ResidentListDialogFragment fragment = new ResidentListDialogFragment();
+                Bundle args = new Bundle();
+                args.putString(ResidentListDialogFragment.BOUND_RESIDENT_ID_ARG, selection.getResident().transform(r -> r.getId()).orNull());
+                fragment.setArguments(args);
+
+                fragment.show(getFragmentManager(), ResidentListDialogFragment.class.getSimpleName());
             });
         }
     }

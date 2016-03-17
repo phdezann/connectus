@@ -5,10 +5,8 @@ import android.view.View;
 import android.widget.TextView;
 import com.firebase.client.Firebase;
 import com.firebase.ui.FirebaseListAdapter;
-import com.google.common.base.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.connectus.model.Message;
-import org.connectus.model.Resident;
 
 public class MessageAdapter extends FirebaseListAdapter<Message> {
     public MessageAdapter(Activity activity, Class<Message> modelClass, int modelLayout, Firebase ref) {
@@ -23,9 +21,6 @@ public class MessageAdapter extends FirebaseListAdapter<Message> {
 
         subject.setText(StringUtils.abbreviate(message.getSubject(), 50));
         content.setText(StringUtils.abbreviate(message.getContent(), 50));
-        Optional<Resident> residentOpt = message.getResident();
-        if (residentOpt.isPresent()) {
-            resident.setText(residentOpt.get().getName());
-        }
+        resident.setText(message.getResident().transform(r -> r.getName()).or(""));
     }
 }

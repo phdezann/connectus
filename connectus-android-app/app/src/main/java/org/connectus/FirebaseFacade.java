@@ -64,9 +64,21 @@ public class FirebaseFacade {
         ref.push().updateChildren(values);
     }
 
-    public void addContact(String email, String residentId, String emailOfContact) {
-        Firebase ref = new Firebase(FirebaseFacadeConstants.getContactsUrl(encode(email), residentId));
-        ref.push().child(FirebaseFacadeConstants.CONTACT_EMAIL_PROPERTY).setValue(emailOfContact);
+    public void updateContact(String email, String residentId, String emailOfContact, Optional<String> previousResidentIdOpt) {
+        Firebase ref = new Firebase(FirebaseFacadeConstants.getContactsUrl(encode(email)));
+        Map<String, Object> values = Maps.newHashMap();
+        if (previousResidentIdOpt.isPresent()) {
+            String previousResidentId = previousResidentIdOpt.get();
+            if (!previousResidentId.equals(residentId)) {
+                values.put(residentId + "/" + FirebaseFacade.encode(emailOfContact), "Active");
+                values.put(previousResidentId + "/" + FirebaseFacade.encode(emailOfContact), null);
+            } else {
+                values.put(residentId + "/" + FirebaseFacade.encode(emailOfContact), null);
+            }
+        } else {
+            values.put(residentId + "/" + FirebaseFacade.encode(emailOfContact), "Active");
+        }
+        ref.updateChildren(values);
     }
 
     public Observable<NoOp> sendCredentials(LoginOrchestrator.LoginCredentials creds) {

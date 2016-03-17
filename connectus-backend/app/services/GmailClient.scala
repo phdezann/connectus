@@ -135,6 +135,19 @@ class GmailClient @Inject()(appConf: AppConf, googleAuthorization: GoogleAuthori
     executeBatch(gmail, requests.toList)
   }
 
+  def removeLabel(userId: String, query: String, label: Label): Future[List[Message]] =
+    for {
+      gmail <- getService(userId)
+      partialMessages <- fetchMessages(gmail, query)
+      messages <- removeLabel(gmail, partialMessages, label)
+    } yield messages
+
+  private def removeLabel(gmail: Gmail, partialMessages: List[Message], label: Label): Future[List[Message]] = {
+    val modifyMessageRequest = new ModifyMessageRequest().setRemoveLabelIds(List(label.getId).asJava)
+    val requests = partialMessages.map(pm => gmail.users().messages().modify("me", pm.getId, modifyMessageRequest))
+    executeBatch(gmail, requests.toList)
+  }
+
   def listMessagesNoCache(userId: String, query: String) = listMessages(userId, query)
 
   def listMessages(userId: String, query: String): Future[List[GmailMessage]] =
