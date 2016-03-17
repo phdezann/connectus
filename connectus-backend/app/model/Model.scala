@@ -5,6 +5,7 @@ import java.time.ZonedDateTime
 import common.Email
 
 case class GmailLabel(id: String, name: String)
+case class GmailThread(id: String, snippet: String, historyId: BigDecimal)
 case class GmailMessage(id: String, date: Option[ZonedDateTime], from: Option[InternetAddress], to: Option[InternetAddress], subject: Option[String], content: Option[String], historyId: BigDecimal, threadId: String, labels: List[GmailLabel], complete: Boolean)
 case class InternetAddress(address: String, personal: Option[String])
 

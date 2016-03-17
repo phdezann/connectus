@@ -37,7 +37,11 @@ public class FirebaseFacadeConstants {
     }
 
     public static String getAdminMessagesUrl(String encodedEmail) {
-        return String.format("%s/messages/%s/admin", getRootUrl(), encodedEmail);
+        return String.format("%s/messages/%s/admin/inbox", getRootUrl(), encodedEmail);
+    }
+
+    public static String getResidentMessagesUrl(String encodedEmail, String residentId) {
+        return String.format("%s/messages/%s/%s/inbox", getRootUrl(), encodedEmail, residentId);
     }
 
     public static String getResidentsUrl(String encodedEmail) {

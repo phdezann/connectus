@@ -16,7 +16,7 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import lombok.extern.slf4j.Slf4j;
-import org.connectus.model.Message;
+import org.connectus.model.GmailThread;
 import org.connectus.model.Resident;
 import org.connectus.support.NoOpObservable.NoOp;
 import rx.Observable;
@@ -50,7 +50,6 @@ public class MainActivity extends Activity {
     Firebase.AuthStateListener mAuthListener;
     TextView connectedUser;
     ListView messagesListView;
-    private Message selection;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -93,8 +92,7 @@ public class MainActivity extends Activity {
         firebaseFacade.addResident(userRepository.getUserEmail(), residentName, Resident.deriveLabelName(residentName));
     }
 
-    public void onAddContact(String residentId, Optional<String> previousBoundResidentId) {
-        String emailOfContact = selection.getFrom();
+    public void onAddContact(String emailOfContact, String residentId, Optional<String> previousBoundResidentId) {
         firebaseFacade.updateContact(userRepository.getUserEmail(), residentId, emailOfContact, previousBoundResidentId);
     }
 
@@ -158,18 +156,32 @@ public class MainActivity extends Activity {
     private void setupMessageAdapter() {
         if (userRepository.isUserLoggedIn()) {
             Firebase ref = new Firebase(FirebaseFacadeConstants.getAdminMessagesUrl(FirebaseFacade.encode(userRepository.getUserEmail())));
-            MessageAdapter adapter = new MessageAdapter(this, Message.class, R.layout.message_list_item, ref);
+            ThreadAdapter adapter = new ThreadAdapter(this, GmailThread.class, R.layout.thread_list_item, ref);
             messagesListView.setAdapter(adapter);
 
             messagesListView.setOnItemClickListener((parent, view, position, id) -> {
-                selection = adapter.getItem(position);
-
+                GmailThread thread = adapter.getItem(position);
                 ResidentListDialogFragment fragment = new ResidentListDialogFragment();
                 Bundle args = new Bundle();
-                args.putString(ResidentListDialogFragment.BOUND_RESIDENT_ID_ARG, selection.getResident().transform(r -> r.getId()).orNull());
+                args.putString(ResidentListDialogFragment.CONTACT_EMAIL_ARG, thread.getLastMessage().getFrom());
+                args.putString(ResidentListDialogFragment.BOUND_RESIDENT_ID_ARG, thread.getLastMessage().getResidentOpt().transform(r -> r.getId()).orNull());
                 fragment.setArguments(args);
 
                 fragment.show(getFragmentManager(), ResidentListDialogFragment.class.getSimpleName());
+            });
+
+            messagesListView.setOnItemLongClickListener((parent, view, position, id) -> {
+                GmailThread thread = adapter.getItem(position);
+                Optional<Resident> residentOpt = thread.getLastMessage().getResidentOpt();
+                if (residentOpt.isPresent()) {
+                    Resident resident = residentOpt.get();
+                    Intent intent = new Intent(this, ResidentThreadListActivity.class);
+                    intent.putExtra(ResidentThreadListActivity.RESIDENT_ID_ARG, resident.getId());
+                    startActivity(intent);
+                } else {
+                    toaster.toast(getString(R.string.no_resident_associated));
+                }
+                return true;
             });
         }
     }

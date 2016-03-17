@@ -5,7 +5,7 @@ import java.nio.charset.Charset
 import java.time.ZonedDateTime
 import java.time.format.DateTimeParseException
 import java.util
-import javax.inject.{Singleton, Inject}
+import javax.inject.{Inject, Singleton}
 
 import _root_.support.AppConf
 import com.google.api.client.auth.oauth2._
@@ -25,7 +25,7 @@ import com.google.api.services.gmail.GmailScopes._
 import com.google.api.services.gmail.model._
 import com.google.common.collect.Lists._
 import common._
-import model.{GmailLabel, GmailMessage, InternetAddress}
+import model.{GmailLabel, GmailMessage, GmailThread, InternetAddress}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
@@ -145,10 +145,38 @@ class GmailClient @Inject()(appConf: AppConf, googleAuthorization: GoogleAuthori
   private def removeLabel(gmail: Gmail, partialMessages: List[Message], label: Label): Future[List[Message]] = {
     val modifyMessageRequest = new ModifyMessageRequest().setRemoveLabelIds(List(label.getId).asJava)
     val requests = partialMessages.map(pm => gmail.users().messages().modify("me", pm.getId, modifyMessageRequest))
-    executeBatch(gmail, requests.toList)
+    executeBatch(gmail, requests)
   }
 
-  def listMessagesNoCache(userId: String, query: String) = listMessages(userId, query)
+  def listThreads(userId: String, query: String): Future[List[GmailThread]] =
+    for {
+      gmail <- getService(userId)
+      gmailThreads <- fetchThreads(gmail, query)
+      threads <- fs(Converter(gmailThreads))
+    } yield threads
+
+  private def fetchThreads(gmail: Gmail, query: String): Future[List[Thread]] =
+    Future {
+      concurrent.blocking {
+        // ListThreadsResponse.getThreads can be null
+        val threadsOpt = Option(gmail.users.threads.list("me").setQ(query).execute.getThreads)
+        threadsOpt.map(_.asScala.toList).fold(List[Thread]())(identity)
+      }
+    }
+
+  def listMessagesOfThread(userId: String, threadId: String): Future[List[GmailMessage]] =
+    for {
+      gmail <- getService(userId)
+      partialMessages <- fetchMessagesOfThread(gmail, threadId)
+      messages <- listMessages(gmail, partialMessages)
+    } yield messages
+
+  private def fetchMessagesOfThread(gmail: Gmail, threadId: String): Future[List[Message]] =
+    Future {
+      concurrent.blocking {
+        gmail.users.threads.get("me", threadId).execute.getMessages.asScala.toList
+      }
+    }
 
   def listMessages(userId: String, query: String): Future[List[GmailMessage]] =
     for {
@@ -233,6 +261,10 @@ class GmailClient @Inject()(appConf: AppConf, googleAuthorization: GoogleAuthori
       val complete = dateOpt.isDefined && fromOpt.isDefined && subjectOpt.isDefined && contentOpt.isDefined
       GmailMessage(message.getId, dateOpt, fromOpt, toOpt, subjectOpt, contentOpt, historyId, message.getThreadId, labelIds, complete)
     }
+
+    def apply(threads: List[Thread]): List[GmailThread] = threads.map(Converter(_))
+
+    def apply(thread: Thread): GmailThread = GmailThread(thread.getId, thread.getSnippet, new java.math.BigDecimal(thread.getHistoryId))
 
     private def getHeader(headers: List[MessagePartHeader], headerNameIgnoreCase: String): Option[String] =
       headers.filter(h => h.getName.equalsIgnoreCase(headerNameIgnoreCase)).map(mph => mph.getValue).headOption

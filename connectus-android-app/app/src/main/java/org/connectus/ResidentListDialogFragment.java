@@ -16,6 +16,7 @@ import javax.inject.Inject;
 
 public class ResidentListDialogFragment extends DialogFragment {
 
+    public static final String CONTACT_EMAIL_ARG = "contactEmail";
     public static final String BOUND_RESIDENT_ID_ARG = "residentId";
     @Inject
     UserRepository userRepository;
@@ -26,6 +27,7 @@ public class ResidentListDialogFragment extends DialogFragment {
         LayoutInflater inflater = getActivity().getLayoutInflater();
         View dialogLayout = inflater.inflate(R.layout.resident_dialog_layout, null);
 
+        String contactOfEmail = getArguments().getString(CONTACT_EMAIL_ARG);
         Optional<String> residentId = Optional.fromNullable(getArguments().getString(BOUND_RESIDENT_ID_ARG));
 
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
@@ -39,7 +41,7 @@ public class ResidentListDialogFragment extends DialogFragment {
 
         Button addResidentButton = (Button) dialogLayout.findViewById(R.id.add_resident);
         listView.setOnItemClickListener((parent, view, position, id) -> {
-            ((MainActivity) getActivity()).onAddContact(adapter.getRef(position).getKey(), residentId);
+            ((MainActivity) getActivity()).onAddContact(contactOfEmail, adapter.getRef(position).getKey(), residentId);
             dismiss();
         });
 
