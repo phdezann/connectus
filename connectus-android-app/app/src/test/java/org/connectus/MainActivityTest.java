@@ -19,8 +19,6 @@ import org.robolectric.RuntimeEnvironment;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import static org.robolectric.Shadows.shadowOf;
-
 public class MainActivityTest extends RobolectricTestBase {
 
     @Inject
@@ -43,15 +41,6 @@ public class MainActivityTest extends RobolectricTestBase {
         connectusApplication.setupComponent(component);
         component.inject(this);
         setupHook();
-    }
-
-    @Test
-    public void pickAccount() {
-        MainActivity activity = Robolectric.setupActivity(MainActivity.class);
-        activity.onSignInGooglePressed();
-
-        flush();
-        assertThat(shadowOf(activity).getNextStartedActivity().getAction()).isEqualTo("com.google.android.gms.auth.GOOGLE_SIGN_IN");
     }
 
     @Test

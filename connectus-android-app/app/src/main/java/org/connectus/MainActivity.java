@@ -1,9 +1,13 @@
 package org.connectus;
 
+import android.Manifest;
 import android.accounts.AccountManager;
 import android.app.Activity;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.view.View;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -29,8 +33,9 @@ import javax.inject.Inject;
 @Slf4j
 public class MainActivity extends Activity {
 
-    static final int RC_GOOGLE_LOGIN = 1;
-    static final int OAUTH_PERMISSIONS = 2;
+    static final int PERMISSIONS_REQUEST_GET_ACCOUNTS = 1;
+    static final int RC_GOOGLE_LOGIN = 2;
+    static final int OAUTH_PERMISSIONS = 3;
 
     GoogleApiClient mGoogleApiClient;
     CompositeSubscription subs = new CompositeSubscription();
@@ -97,8 +102,31 @@ public class MainActivity extends Activity {
     }
 
     public void onSignInGooglePressed() {
+        int permissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.GET_ACCOUNTS);
+        if (permissionCheck == PackageManager.PERMISSION_GRANTED) {
+            chooseGoogleAccount();
+        } else {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.GET_ACCOUNTS}, PERMISSIONS_REQUEST_GET_ACCOUNTS);
+        }
+    }
+
+    private void chooseGoogleAccount() {
         Intent signInIntent = Auth.GoogleSignInApi.getSignInIntent(mGoogleApiClient);
         startActivityForResult(signInIntent, RC_GOOGLE_LOGIN);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        switch (requestCode) {
+            case PERMISSIONS_REQUEST_GET_ACCOUNTS: {
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    chooseGoogleAccount();
+                } else {
+                    toaster.toast("Contact permission is required");
+                }
+            }
+        }
     }
 
     @Override
