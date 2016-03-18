@@ -1,6 +1,5 @@
 package services
 
-import java.lang.Iterable
 import java.util
 import javax.inject.{Inject, Singleton}
 
@@ -63,6 +62,18 @@ class FirebaseFacade @Inject()(appConf: AppConf) {
         listener(AuthorizationCode(snapshot.getKey, providedAndroidId, authorizationCode, tradeCode))
       }
       override def onChildRemoved(snapshot: DataSnapshot) = {}
+      override def onChildMoved(snapshot: DataSnapshot, previousChildName: String) = {}
+      override def onChildChanged(snapshot: DataSnapshot, previousChildName: String) = {}
+      override def onCancelled(error: FirebaseError) = {}
+    })
+  }
+
+  def listenUsers(onAddListener: Email => Unit, onRemovedListener: Email => Unit) = {
+    def getUserEmail(snapshot: DataSnapshot) = Util.decode(snapshot.getKey)
+    val ref = new Firebase(s"${appConf.getFirebaseUrl}/$UsersPath")
+    ref.addChildEventListener(new ChildEventListener {
+      override def onChildAdded(snapshot: DataSnapshot, previousChildName: String) = onAddListener(getUserEmail(snapshot))
+      override def onChildRemoved(snapshot: DataSnapshot) = onRemovedListener(getUserEmail(snapshot))
       override def onChildMoved(snapshot: DataSnapshot, previousChildName: String) = {}
       override def onChildChanged(snapshot: DataSnapshot, previousChildName: String) = {}
       override def onCancelled(error: FirebaseError) = {}
