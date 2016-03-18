@@ -1,4 +1,4 @@
-name := """play-getting-started"""
+name := """connectus"""
 
 version := "1.0-SNAPSHOT"
 
