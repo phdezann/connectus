@@ -1,6 +1,6 @@
 package support
 
-import java.time.{ZoneId, Clock}
+import java.time.{Clock, ZoneId}
 
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier
 import com.google.api.client.http.javanet.NetHttpTransport
@@ -10,7 +10,7 @@ import com.google.inject.AbstractModule
 import controllers.AppController
 import play.api.libs.concurrent.AkkaGuiceSupport
 import services.support.SystemClock
-import services.{GmailWatcherActor, RepositoryDataStoreFactory}
+import services.{GmailWatcherActor, GoogleClientThrottlerActor, RepositoryDataStoreFactory}
 
 class AppModule extends AbstractModule {
   def configure = {
@@ -24,5 +24,6 @@ class AppModule extends AbstractModule {
 class AkkaModule extends AbstractModule with AkkaGuiceSupport {
   def configure = {
     bindActor[GmailWatcherActor]("gmailWatcherActor")
+    bindActor[GoogleClientThrottlerActor]("googleClientThrottlerActor")
   }
 }

@@ -4,10 +4,14 @@ import java.io._
 import java.nio.charset.Charset
 import java.time.ZonedDateTime
 import java.time.format.DateTimeParseException
-import java.util
-import javax.inject.{Inject, Singleton}
+import javax.inject.{Inject, Named, Singleton}
 
 import _root_.support.AppConf
+import akka.actor.{ActorRef, Props, _}
+import akka.contrib.throttle.Throttler.{SetTarget, _}
+import akka.contrib.throttle.TimerBasedThrottler
+import akka.pattern.ask
+import akka.util.Timeout
 import com.google.api.client.auth.oauth2._
 import com.google.api.client.auth.openidconnect.IdTokenResponse
 import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow.Builder
@@ -20,9 +24,9 @@ import com.google.api.client.http.HttpHeaders
 import com.google.api.client.http.javanet.NetHttpTransport
 import com.google.api.client.json.jackson2.JacksonFactory
 import com.google.api.client.util.store.AbstractDataStoreFactory
-import com.google.api.services.gmail.Gmail
 import com.google.api.services.gmail.GmailScopes._
 import com.google.api.services.gmail.model._
+import com.google.api.services.gmail.{Gmail, GmailRequest}
 import com.google.common.collect.Lists._
 import common._
 import model.{GmailLabel, GmailMessage, GmailThread, InternetAddress}
@@ -30,7 +34,8 @@ import model.{GmailLabel, GmailMessage, GmailThread, InternetAddress}
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent._
+import scala.concurrent.duration._
 
 object Utils {
   val ApplicationName = "Connectus"
@@ -67,7 +72,15 @@ class GoogleAuthorization @Inject()(appConf: AppConf, dataStoreFactory: Abstract
   }
 }
 
-class GmailClient @Inject()(appConf: AppConf, googleAuthorization: GoogleAuthorization) {
+@Singleton
+class GmailClient @Inject()(appConf: AppConf, googleAuthorization: GoogleAuthorization, @Named("googleClientThrottlerActor") googleClientThrottlerActor: ActorRef, system: ActorSystem) {
+
+  implicit val timeout = Timeout(10 seconds)
+  val throttler = system.actorOf(Props(new TimerBasedThrottler(1 msgsPer(50, MILLISECONDS))))
+  throttler ! SetTarget(Some(googleClientThrottlerActor))
+
+  def schedule[T](request: GmailRequest[T]): Future[T] = (throttler ? GmailClientThrottlerActor.ScheduleGmailRequest(request)).asInstanceOf[Future[T]]
+  def scheduleBatch(request: BatchRequest): Future[Any] = (throttler ? GmailClientThrottlerActor.ScheduleBatchRequest(request))
 
   private def getService(userId: String): Future[Gmail] =
     googleAuthorization.credentials(userId)
@@ -86,13 +99,10 @@ class GmailClient @Inject()(appConf: AppConf, googleAuthorization: GoogleAuthori
     } yield watchResponse
   }
 
-  private def callWatch(gmail: Gmail): Future[WatchResponse] =
-    Future {
-      concurrent.blocking {
-        val request = gmail.users.watch("me", new WatchRequest().setTopicName(appConf.getGmailTopic))
-        request.execute
-      }
-    }
+  private def callWatch(gmail: Gmail): Future[WatchResponse] = {
+    val request = gmail.users.watch("me", new WatchRequest().setTopicName(appConf.getGmailTopic))
+    schedule(request)
+  }
 
   def listLabels(userId: String): Future[List[Label]] =
     for {
@@ -100,13 +110,13 @@ class GmailClient @Inject()(appConf: AppConf, googleAuthorization: GoogleAuthori
       label <- listLabels(gmail)
     } yield label
 
-  private def listLabels(gmail: Gmail): Future[List[Label]] =
-    Future {
-      concurrent.blocking {
-        val labels = gmail.users().labels().list("me").execute.getLabels
-        Option(labels).fold[List[Label]](List())(_.asScala.toList)
-      }
+  private def listLabels(gmail: Gmail): Future[List[Label]] = {
+    val request = gmail.users().labels().list("me")
+    schedule(request).map { response =>
+      val labels = response.getLabels
+      Option(labels).fold[List[Label]](List())(_.asScala.toList)
     }
+  }
 
   def createLabel(userId: String, labelName: String): Future[Label] =
     for {
@@ -114,13 +124,11 @@ class GmailClient @Inject()(appConf: AppConf, googleAuthorization: GoogleAuthori
       label <- createLabel(gmail, labelName)
     } yield label
 
-  private def createLabel(gmail: Gmail, labelName: String): Future[Label] =
-    Future {
-      concurrent.blocking {
-        val label = new Label().setName(labelName).setLabelListVisibility("labelShow").setMessageListVisibility("show")
-        gmail.users().labels().create("me", label).execute
-      }
-    }
+  private def createLabel(gmail: Gmail, labelName: String): Future[Label] = {
+    val label = new Label().setName(labelName).setLabelListVisibility("labelShow").setMessageListVisibility("show")
+    val request = gmail.users().labels().create("me", label)
+    schedule(request)
+  }
 
   def addLabel(userId: String, query: String, label: Label): Future[List[Message]] =
     for {
@@ -132,7 +140,7 @@ class GmailClient @Inject()(appConf: AppConf, googleAuthorization: GoogleAuthori
   private def addLabel(gmail: Gmail, partialMessages: List[Message], label: Label): Future[List[Message]] = {
     val modifyMessageRequest = new ModifyMessageRequest().setAddLabelIds(List(label.getId).asJava)
     val requests = partialMessages.map(pm => gmail.users().messages().modify("me", pm.getId, modifyMessageRequest))
-    executeBatch(gmail, requests.toList)
+    executeBatch(gmail, requests)
   }
 
   def removeLabel(userId: String, query: String, label: Label): Future[List[Message]] =
@@ -155,14 +163,14 @@ class GmailClient @Inject()(appConf: AppConf, googleAuthorization: GoogleAuthori
       threads <- fs(Converter(gmailThreads))
     } yield threads
 
-  private def fetchThreads(gmail: Gmail, query: String): Future[List[Thread]] =
-    Future {
-      concurrent.blocking {
-        // ListThreadsResponse.getThreads can be null
-        val threadsOpt = Option(gmail.users.threads.list("me").setQ(query).execute.getThreads)
-        threadsOpt.map(_.asScala.toList).fold(List[Thread]())(identity)
-      }
-    }
+  private def fetchThreads(gmail: Gmail, query: String): Future[List[Thread]] = {
+    val request = gmail.users.threads.list("me").setQ(query)
+    schedule(request).map(response => {
+      // ListThreadsResponse.getThreads can be null
+      val threadsOpt = Option(request.execute.getThreads)
+      threadsOpt.map(_.asScala.toList).fold(List[Thread]())(identity)
+    })
+  }
 
   def listMessagesOfThread(userId: String, threadId: String): Future[List[GmailMessage]] =
     for {
@@ -171,12 +179,10 @@ class GmailClient @Inject()(appConf: AppConf, googleAuthorization: GoogleAuthori
       messages <- listMessages(gmail, partialMessages)
     } yield messages
 
-  private def fetchMessagesOfThread(gmail: Gmail, threadId: String): Future[List[Message]] =
-    Future {
-      concurrent.blocking {
-        gmail.users.threads.get("me", threadId).execute.getMessages.asScala.toList
-      }
-    }
+  private def fetchMessagesOfThread(gmail: Gmail, threadId: String): Future[List[Message]] = {
+    val request = gmail.users.threads.get("me", threadId)
+    schedule(request).map(_.getMessages.asScala.toList)
+  }
 
   def listMessages(userId: String, query: String): Future[List[GmailMessage]] =
     for {
@@ -203,14 +209,12 @@ class GmailClient @Inject()(appConf: AppConf, googleAuthorization: GoogleAuthori
     } yield messages
   }
 
-  private def fetchMessages(gmail: Gmail, query: String): Future[List[Message]] =
-    Future {
-      concurrent.blocking {
-        val request = gmail.users.messages.list("me").setQ(query)
-        val response: ListMessagesResponse = request.execute
-        if (response.getResultSizeEstimate > 0) response.getMessages.asScala.toList else List()
-      }
+  private def fetchMessages(gmail: Gmail, query: String): Future[List[Message]] = {
+    val request = gmail.users.messages.list("me").setQ(query)
+    schedule(request).map { response =>
+      if (response.getResultSizeEstimate > 0) response.getMessages.asScala.toList else List()
     }
+  }
 
   private def fetchLabels(gmail: Gmail, messages: List[Message]): Future[Map[String, Label]] = {
     val labelIds = messages.foldLeft(Set[String]())((acc, message) => acc ++ message.getLabelIds.asScala.toSet)
@@ -223,20 +227,15 @@ class GmailClient @Inject()(appConf: AppConf, googleAuthorization: GoogleAuthori
     if (requests.isEmpty) {
       fs(List.empty[T])
     } else {
-      Future {
-        concurrent.blocking {
-          val batch: BatchRequest = gmail.batch()
-          val results: ListBuffer[T] = ListBuffer()
-          val errors: ListBuffer[GoogleJsonError] = ListBuffer()
-          requests.foreach(_.queue(batch, new JsonBatchCallback[T] {
-            override def onSuccess(label: T, responseHeaders: HttpHeaders): Unit = results += label
-            override def onFailure(e: GoogleJsonError, responseHeaders: HttpHeaders): Unit = errors += e
-          }))
-          batch.execute
-          (results.toList, errors.toList)
-        }
-      } flatMap { case (results, errors) => fold(results, errors) }
-    }
+      val batch: BatchRequest = gmail.batch()
+      val results: ListBuffer[T] = ListBuffer()
+      val errors: ListBuffer[GoogleJsonError] = ListBuffer()
+      requests.foreach(_.queue(batch, new JsonBatchCallback[T] {
+        override def onSuccess(label: T, responseHeaders: HttpHeaders): Unit = results += label
+        override def onFailure(e: GoogleJsonError, responseHeaders: HttpHeaders): Unit = errors += e
+      }))
+      scheduleBatch(batch).map { _ => (results.toList, errors.toList) }
+    } flatMap { case (results, errors) => fold(results, errors) }
   }
 
   class GoogleJsonErrorException(val msg: String) extends Throwable(msg)
