@@ -6,7 +6,7 @@ docker run -it --rm --volumes-from connectus-build-cache                        
     -e ANDROID_RELEASE_KEY_ALIAS=release                                                               \
     -e ANDROID_RELEASE_KEY_PASSWORD=secret                                                             \
     -e ANDROID_PLAY_PUBLISHER_SERVICE_ACCOUNT_JSON_PATH=/private/connectus-play-publisher-account.json \
-    -e FIREBASE_ROOT_URL=$FIREBASE_ROOT_URL                                                            \
+    -e APPLICATION_FIREBASE_URL=$APPLICATION_FIREBASE_URL                                              \
     -v $(pwd)/.private:/private                                                                        \
     -v $(pwd):/workspace                                                                               \
     -w /workspace/connectus-android-app connectus-build                                                \

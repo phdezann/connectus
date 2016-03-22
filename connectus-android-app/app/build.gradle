@@ -33,7 +33,7 @@ android {
         minSdkVersion 19
         targetSdkVersion 23
         testInstrumentationRunner 'android.support.test.runner.AndroidJUnitRunner'
-        buildConfigField 'String', 'FIREBASE_ROOT_URL', "\"$System.env.FIREBASE_ROOT_URL\""
+        buildConfigField 'String', 'FIREBASE_ROOT_URL', "\"$System.env.APPLICATION_FIREBASE_URL\""
 
         def longVersionName = "git -C ${rootDir} describe --tags --long".execute().text.trim()
         def (fullVersionTag, versionBuild, gitSha) = longVersionName.tokenize('-')
