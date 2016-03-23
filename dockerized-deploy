@@ -9,11 +9,19 @@ docker run -it --rm --volumes-from connectus-build-cache                        
     -e APPLICATION_FIREBASE_URL=$APPLICATION_FIREBASE_URL                                              \
     -v $(pwd)/.private:/private                                                                        \
     -v $(pwd):/workspace                                                                               \
-    -w /workspace/connectus-android-app connectus-build                                                \
+    -w /workspace/connectus-android-app                                                                \
+    connectus-build                                                                                    \
     ./gradlew publishApkRelease
-docker run -it --rm --volumes-from connectus-build-cache     \
+docker run -it --rm                                                   \
+    -e APPLICATION_FIREBASE_URL=$APPLICATION_FIREBASE_URL             \
+    -e APPLICATION_FIREBASE_JWT_TOKEN=$APPLICATION_FIREBASE_JWT_TOKEN \
+    -w /workspace/connectus-android-app                               \
+    connectus-build                                                   \
+    upload-release-description
+docker run -it --rm                                          \
     -e HEROKU_SSH_KEY_PATH=/private/id_rsa-travisci-4-heroku \
     -v $(pwd)/.private:/private                              \
     -v $(pwd):/workspace                                     \
-    -w /workspace/connectus-backend connectus-build          \
+    -w /workspace/connectus-backend                          \
+    connectus-build                                          \
     deploy-to-heroku

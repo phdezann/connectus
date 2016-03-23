@@ -65,6 +65,7 @@ ENV GRADLE_USER_HOME=/data/gradle
 RUN echo "-sbt-boot /data/sbt/boot" >> /opt/sbt/conf/sbtopts
 RUN echo "-ivy      /data/sbt/ivy2" >> /opt/sbt/conf/sbtopts
 
+ADD config.ini /home/connectus
 ADD init-emulator /usr/local/bin/
 ADD deploy-to-heroku /usr/local/bin/
-ADD config.ini /home/connectus
+ADD upload-release-description /usr/local/bin/

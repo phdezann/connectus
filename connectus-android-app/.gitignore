@@ -7,3 +7,6 @@
 /build
 /captures
 /.idea
+buildSrc/local.properties
+buildSrc/build
+app/release-description.txt

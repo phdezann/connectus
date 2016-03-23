@@ -1,0 +1,3 @@
+#!/bin/bash
+
+curl -X PUT -d @app/release-description.txt "$APPLICATION_FIREBASE_URL/config.json?AUTH=$APPLICATION_FIREBASE_JWT_TOKEN"

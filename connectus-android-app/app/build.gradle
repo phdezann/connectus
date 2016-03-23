@@ -34,16 +34,8 @@ android {
         targetSdkVersion 23
         testInstrumentationRunner 'android.support.test.runner.AndroidJUnitRunner'
         buildConfigField 'String', 'FIREBASE_ROOT_URL', "\"$System.env.APPLICATION_FIREBASE_URL\""
-
-        def longVersionName = "git -C ${rootDir} describe --tags --long".execute().text.trim()
-        def (fullVersionTag, versionBuild, gitSha) = longVersionName.tokenize('-')
-        def (versionMajor, versionMinor, versionPatch) = fullVersionTag.tokenize('.')
-
-        versionName "$versionMajor.$versionMinor.$versionPatch($versionBuild)"
-        versionCode versionMajor.toInteger() * 100000 +
-                versionMinor.toInteger() * 10000 +
-                versionPatch.toInteger() * 1000 +
-                versionBuild.toInteger()
+        versionName VersioningUtils.versionName()
+        versionCode VersioningUtils.versionCode()
     }
     sourceSets {
         test {
@@ -100,6 +92,24 @@ android {
 play {
     jsonFile = file("$System.env.ANDROID_PLAY_PUBLISHER_SERVICE_ACCOUNT_JSON_PATH")
     track = 'alpha'
+}
+
+task('writeReleaseDescription') << {
+    File configFile = file('release-description.txt')
+    configFile.withWriter { out ->
+        out.println """{
+            "gitSha": "${VersioningUtils.gitSha()}",
+            "versionName": "${VersioningUtils.versionName()}",
+            "versionCode": "${VersioningUtils.versionCode()}",
+            "timestamp": {".sv": "timestamp"}
+            }
+        """
+    }
+}
+
+project.afterEvaluate {
+    def publishApkRelease = project.tasks.getByName("publishApkRelease")
+    publishApkRelease.dependsOn writeReleaseDescription
 }
 
 final DAGGER_VERSION = '2.0.2'
