@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
-docker run -it --rm --volumes-from connectus-build-cache                                               \
+docker run                                                                                             \
+    -it --rm                                                                                           \
+    --volumes-from connectus-build-cache                                                               \
     -e ANDROID_RELEASE_KEYSTORE_PATH=/private/connectus-release.keystore                               \
     -e ANDROID_RELEASE_KEYSTORE_PASSWORD=secret                                                        \
     -e ANDROID_RELEASE_KEY_ALIAS=release                                                               \
@@ -12,13 +14,15 @@ docker run -it --rm --volumes-from connectus-build-cache                        
     -w /workspace/connectus-android-app                                                                \
     connectus-build                                                                                    \
     ./gradlew publishApkRelease
-docker run -it --rm                                                   \
+docker run                                                            \
+    -it --rm                                                          \
     -e APPLICATION_FIREBASE_URL=$APPLICATION_FIREBASE_URL             \
     -e APPLICATION_FIREBASE_JWT_TOKEN=$APPLICATION_FIREBASE_JWT_TOKEN \
     -w /workspace/connectus-android-app                               \
     connectus-build                                                   \
     upload-release-description
-docker run -it --rm                                          \
+docker run
+    -it --rm                                                 \
     -e HEROKU_SSH_KEY_PATH=/private/id_rsa-travisci-4-heroku \
     -v $(pwd)/.private:/private                              \
     -v $(pwd):/workspace                                     \
