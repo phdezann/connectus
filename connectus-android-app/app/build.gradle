@@ -1,3 +1,5 @@
+import org.connectus.VersioningUtils
+
 buildscript {
     repositories {
         jcenter()
@@ -97,11 +99,13 @@ play {
 task('writeReleaseDescription') << {
     File configFile = file('release-description.txt')
     configFile.withWriter { out ->
-        out.println """{
-            "gitSha": "${VersioningUtils.gitSha()}",
-            "versionName": "${VersioningUtils.versionName()}",
-            "versionCode": "${VersioningUtils.versionCode()}",
-            "timestamp": {".sv": "timestamp"}
+        out.println  """{
+            "config": {
+                    "gitSha": "${VersioningUtils.gitSha()}",
+                    "versionName": "${VersioningUtils.versionName()}",
+                    "versionCode": "${VersioningUtils.versionCode()}",
+                    "timestamp": {".sv": "timestamp"}
+                }
             }
         """
     }
