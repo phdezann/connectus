@@ -3,8 +3,10 @@ package org.connectus;
 import android.Manifest;
 import android.accounts.AccountManager;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
@@ -86,11 +88,41 @@ public class MainActivity extends Activity {
             };
             ref.addAuthStateListener(mAuthListener);
             setupMessageAdapter();
+
+            if (userRepository.isUserLoggedIn()) {
+                onLoginSuccess();
+            }
         }
 
-        if (userRepository.isUserLoggedIn()) {
-            onLoginSuccess();
+        if (environmentHelper.isReleaseBuildType()) {
+            Observable<String> publishedVersionObs = firebaseFacade.publishedVersion();
+            subs.add(publishedVersionObs.subscribeOn(Schedulers.io()) //
+                    .observeOn(AndroidSchedulers.mainThread()) //
+                    .subscribe(publishedVersion -> {
+                        if (publishedVersion != null && !publishedVersion.equals(BuildConfig.VERSION_NAME)) {
+                            showUpdateAppModalDialog();
+                        }
+                    }));
         }
+    }
+
+    private void showUpdateAppModalDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(R.string.update_available_title);
+        builder.setMessage(R.string.update_available);
+        builder.setPositiveButton(R.string.update, (dialog, which) -> {
+            // use a setOnClickListener instead in order not to close the dialog on button click
+        });
+        builder.setCancelable(false);
+        AlertDialog dialog = builder.create();
+        dialog.show();
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(view -> {
+            try {
+                startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=" + getPackageName())));
+            } catch (android.content.ActivityNotFoundException ignore) {
+                toaster.toast(getString(R.string.update_available_no_google_play));
+            }
+        });
     }
 
     public void addResidentAndAddContact(String residentName) {

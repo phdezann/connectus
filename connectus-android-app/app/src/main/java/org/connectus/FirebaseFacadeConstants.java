@@ -20,6 +20,10 @@ public class FirebaseFacadeConstants {
         return BuildConfig.FIREBASE_ROOT_URL;
     }
 
+    public static String getPublishedVersionName() {
+        return getRootUrl() + "/config/versionName";
+    }
+
     public static String getAuthorizationCodesUrl() {
         return getRootUrl() + "/authorization_codes";
     }

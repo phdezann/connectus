@@ -7,6 +7,10 @@
     <string name="android_id_scope">audience:server:client_id:%1$s</string>
     <string name="access_token_scopes">oauth2:profile email</string>
     <string name="add">Add</string>
+    <string name="update_available_title">An update is available</string>
+    <string name="update_available">Good news, an update is available on Google Play!</string>
+    <string name="update_available_no_google_play">Google Play must be installed to get updates automatically</string>
+    <string name="update">Update App</string>
     <string name="on_logging_success">Successfully logged in</string>
     <string name="on_login_error">Login failed</string>
     <string name="no_resident_associated">No resident associated to this message yet</string>

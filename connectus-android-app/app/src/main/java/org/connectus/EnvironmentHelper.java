@@ -8,6 +8,10 @@ public class EnvironmentHelper {
     public EnvironmentHelper() {
     }
 
+    public boolean isReleaseBuildType() {
+        return BuildConfig.BUILD_TYPE.equals("release");
+    }
+
     public boolean isInTest() {
         return false;
     }
