@@ -11,25 +11,28 @@ import scala.concurrent.Future
 import scala.util.{Failure, Success}
 
 @Singleton
-class AccountInitializer @Inject()(googleAuthorization: GoogleAuthorization, androidIdVerifier: AndroidIdVerifier, fireBaseFacade: FirebaseFacade, messageService: MessageService) {
+class AccountInitializer @Inject()(googleAuthorization: GoogleAuthorization, androidIdVerifier: AndroidIdVerifier, fireBaseFacade: FirebaseFacade, messageService: MessageService, jobQueueActorClient: JobQueueActorClient) {
 
   fireBaseFacade.listenAuthorizationCodes(authorizationCode => {
     def notTradedYet = authorizationCode.tradeCode.isEmpty
     if (notTradedYet) {
-      val op = {
-        for {
-          (email, googleTokenResponse) <- trade(authorizationCode.androidId, authorizationCode.authorizationCode)
-          _ <- fireBaseFacade.initAccount(authorizationCode.authorizationCodeId, email, googleTokenResponse)
-          _ <- messageService.tagInbox(email)
-        } yield email
-      }
-      op.onComplete {
-        case Success(email) =>
-          Logger.info(s"Success at initializing user $email")
-        case Failure(e) =>
-          Logger.info("Failed to initialize user", e)
-      }
-      op.recoverWith { case e => fireBaseFacade.onTradeFailure(authorizationCode.authorizationCodeId, e) }
+      jobQueueActorClient.schedule(() => {
+        val op = {
+          for {
+            (email, googleTokenResponse) <- trade(authorizationCode.androidId, authorizationCode.authorizationCode)
+            _ <- fireBaseFacade.initAccount(authorizationCode.authorizationCodeId, email, googleTokenResponse)
+            _ <- messageService.tagInbox(email)
+          } yield email
+        }
+        op.onComplete {
+          case Success(email) =>
+            Logger.info(s"Success at initializing user $email")
+          case Failure(e) =>
+            Logger.info("Failed to initialize user", e)
+        }
+        op.recoverWith { case e => fireBaseFacade.onTradeFailure(authorizationCode.authorizationCodeId, e) }
+        op
+      })
     }
   })
 

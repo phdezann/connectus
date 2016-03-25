@@ -10,20 +10,23 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 @Singleton
-class AutoTagger @Inject()(gmailClient: GmailClient, messageService: MessageService, fireBaseFacade: FirebaseFacade) {
+class AutoTagger @Inject()(gmailClient: GmailClient, messageService: MessageService, fireBaseFacade: FirebaseFacade, jobQueueActorClient: JobQueueActorClient) {
 
   fireBaseFacade.listenContacts(email => {
-    val removeTags = for {
-      allLabels <- gmailClient.listLabels(email)
-      allConnectusLabels <- filterConnectusLabels(allLabels)
-      _ <- removeAll(email, allConnectusLabels)
-    } yield ()
-    val action = for {
-      _ <- removeTags
-      _ <- messageService.tagInbox(email)
-    } yield ()
-    action.onComplete { case _ => Logger.info(s"Messages successfully re-labelled for $email after contacts modification") }
-    action.onFailure { case e => Logger.error(s"Error while re-labelling messages for $email after contacts modification", e) }
+    jobQueueActorClient.schedule(() => {
+      val removeTags = for {
+        allLabels <- gmailClient.listLabels(email)
+        allConnectusLabels <- filterConnectusLabels(allLabels)
+        _ <- removeAll(email, allConnectusLabels)
+      } yield ()
+      val action = for {
+        _ <- removeTags
+        _ <- messageService.tagInbox(email)
+      } yield ()
+      action.onComplete { case _ => Logger.info(s"Messages successfully re-labelled for $email after contacts modification") }
+      action.onFailure { case e => Logger.error(s"Error while re-labelling messages for $email after contacts modification", e) }
+      action
+    })
   })
 
   private def filterConnectusLabels(labels: List[Label]) =

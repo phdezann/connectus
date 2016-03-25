@@ -10,7 +10,7 @@ import com.google.api.services.gmail.GmailRequest
 import scala.concurrent._
 
 object GmailClientThrottlerActor {
-  case class ScheduleGmailRequest(request: GmailRequest[_])
+  case class ScheduleGmailRequest[T](request: GmailRequest[T])
   case class ScheduleBatchRequest(request: BatchRequest)
 }
 

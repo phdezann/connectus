@@ -44,6 +44,7 @@ class AccountInitializerTest extends FunSuiteLike with Mockito {
     val googleAuthorization = mock[GoogleAuthorization]
     val appConf = mock[AppConf]
     val messageService = mock[MessageService]
+    val jobQueueActorClient = mock[JobQueueActorClient]
 
     when(googleIdTokenVerifier.verify(any[GoogleIdToken])) thenReturn true
     when(appConf.getWebComponentClientId) thenReturn webComponentClientId
@@ -56,6 +57,7 @@ class AccountInitializerTest extends FunSuiteLike with Mockito {
       .overrides(bind[AppConf].toInstance(appConf))
       .overrides(bind[GoogleAuthorization].toInstance(googleAuthorization))
       .overrides(bind[MessageService].toInstance(messageService))
+      .overrides(bind[JobQueueActorClient].toInstance(jobQueueActorClient))
       .build
 
     injector.instanceOf[AccountInitializer].trade(androidId, "authorizationCode")
