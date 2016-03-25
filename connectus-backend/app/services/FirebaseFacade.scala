@@ -9,17 +9,16 @@ import com.firebase.client._
 import com.google.api.client.auth.oauth2.TokenResponseException
 import com.google.api.client.googleapis.auth.oauth2.GoogleTokenResponse
 import com.google.common.base.Throwables
-import common.Email
+import common._
 import model.{Contact, Resident}
 import play.api.Logger
 
 import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Future, Promise}
+import FirebaseFacade._
 
-@Singleton
-class FirebaseFacade @Inject()(appConf: AppConf) {
-
+object FirebaseFacade {
   val AuthorizationCodesPath = "authorization_codes"
   val AndroidIdPath = "android_id"
   val AuthorizationCodePath = "authorization_code"
@@ -40,6 +39,10 @@ class FirebaseFacade @Inject()(appConf: AppConf) {
   val LoginCodeSuccess = "SUCCESS"
   val LoginCodeInvalidGrant = "INVALID_GRANT"
   val LoginCodeFailure = "FAILURE"
+}
+
+@Singleton
+class FirebaseFacade @Inject()(appConf: AppConf) {
 
   connect
 
@@ -140,6 +143,22 @@ class FirebaseFacade @Inject()(appConf: AppConf) {
       override def onChildRemoved(snapshot: DataSnapshot) = {}
       override def onChildMoved(snapshot: DataSnapshot, previousChildName: String) = {}
       override def onCancelled(error: FirebaseError) = {}
+    })
+  }
+
+  def getAdminThreadIds(email: Email): Future[Map[ThreadId, List[MessageId]]] = {
+    def toChildrenList(snapshot: DataSnapshot) = snapshot.getChildren.iterator().asScala.toList
+    val encodedEmail = Util.encode(email)
+    val ref = new Firebase(s"${appConf.getFirebaseUrl}/messages/$encodedEmail/admin/threads")
+    FutureWrappers.getValueFuture(ref).map(snapshot => {
+      val pairs = toChildrenList(snapshot).flatMap(thread => {
+        toChildrenList(thread).map(message => {
+          val threadId = thread.getKey
+          val messageId = message.getKey
+          (threadId, messageId)
+        })
+      })
+      pairs.groupBy(_._1).mapValues(_.map(_._2))
     })
   }
 

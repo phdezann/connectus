@@ -14,4 +14,6 @@ package object common {
     promise.future
   }
   type Email = String
+  type ThreadId = String
+  type MessageId = String
 }

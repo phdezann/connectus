@@ -1,13 +1,15 @@
 package services
 
+import java.time.ZonedDateTime
 import javax.inject.Inject
 
 import com.google.api.services.gmail.model.Label
 import common._
-import model.{Contact, GmailLabel, GmailMessage, GmailThread, Resident}
+import model.{Contact, GmailLabel, GmailMessage, InternetAddress, Resident, ThreadBundle}
 import play.api.Logger
+import FirebaseFacade._
 
-import scala.collection.immutable.Iterable
+import scala.collection.immutable.TreeMap
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -38,7 +40,7 @@ object MessageService {
   def toLabel(resident: Resident) = MessageService.ConnectusLabelName + "/" + resident.name
 }
 
-class MessageService @Inject()(gmailClient: GmailClient, firebaseFacade: FirebaseFacade) {
+class MessageService @Inject()(gmailClient: GmailClient, firebaseFacade: FirebaseFacade, messageMapper: MessageMapper) {
 
   def executeTagInbox(email: Email) = {
     val action = tagInbox(email)
@@ -48,11 +50,11 @@ class MessageService @Inject()(gmailClient: GmailClient, firebaseFacade: Firebas
 
   def tagInbox(email: Email) = {
     val residents: Future[Map[Resident, List[Contact]]] = firebaseFacade.getResidentsAndContacts(email)
-    def initConnectusLabel: Future[Label] = getOrCreate(email, _.getName == MessageService.ConnectusLabelName, MessageService.ConnectusLabelName)
-    def initLabel(resident: Resident): Future[Label] = getOrCreate(email, label => resident.labelId.fold(false)(labelId => label.getId == labelId), MessageService.toLabel(resident))
-    def addLabel(query: String, label: Label): Future[_] = gmailClient.addLabel(email, query, label)
-    def saveResidentLabelId(resident: Resident, label: Label): Future[Unit] = firebaseFacade.addResidentLabelId(email, resident.id, label.getId)
-    def initAllResidentLabels: Future[Map[Resident, Label]] = residents.flatMap { residents =>
+    def initConnectusLabel: Future[GmailLabel] = getOrCreate(email, _.getName == MessageService.ConnectusLabelName, MessageService.ConnectusLabelName)
+    def initLabel(resident: Resident): Future[GmailLabel] = getOrCreate(email, label => resident.labelId.fold(false)(labelId => label.getId == labelId), MessageService.toLabel(resident))
+    def addLabel(query: String, label: GmailLabel): Future[_] = gmailClient.addLabel(email, query, label.id)
+    def saveResidentLabelId(resident: Resident, label: GmailLabel): Future[Unit] = firebaseFacade.addResidentLabelId(email, resident.id, label.id)
+    def initAllResidentLabels: Future[Map[Resident, GmailLabel]] = residents.flatMap { residents =>
       val all = residents.map { case (resident, contacts) => initLabel(resident).map(label => (resident, label)) }
       Future.sequence(all).map(_.toMap)
     }
@@ -60,7 +62,7 @@ class MessageService @Inject()(gmailClient: GmailClient, firebaseFacade: Firebas
       connectusLabel <- initConnectusLabel
       residents <- initAllResidentLabels
     } yield (connectusLabel, residents)
-    def doLabelMessages(connectusLabel: Label, residentLabels: Map[Resident, Label]) = residents.flatMap {
+    def doLabelMessages(connectusLabel: GmailLabel, residentLabels: Map[Resident, GmailLabel]) = residents.flatMap {
       residents =>
         val all: Iterable[Future[Unit]] = residents.map {
           case (resident, contacts) =>
@@ -81,82 +83,129 @@ class MessageService @Inject()(gmailClient: GmailClient, firebaseFacade: Firebas
     } yield ()
   }
 
-  case class ThreadSummary(thread: GmailThread, messages: List[GmailMessage], lastMessage: Option[GmailMessage] = None)
-
-  private def saveThreads(email: Email, residentLabels: Map[Resident, Label]) = {
-    def augmentThreadSummariesWithLastMessage(threadSummaries: List[ThreadSummary]): Future[List[ThreadSummary]] = {
-      val withLastMessage = threadSummaries.map { threadSummary =>
-        threadSummary.messages.reverse.headOption.fold[Future[ThreadSummary]](fs(threadSummary)) { lastMessage =>
-          gmailClient.getMessage(email, lastMessage.id).map { gmailMessage =>
-            threadSummary.copy(lastMessage = gmailMessage)
-          }
-        }
-      }
-      Future.sequence(withLastMessage)
+  def saveThreads(email: Email, residentLabels: Map[Resident, GmailLabel]) = {
+    val threadBundles = messageMapper.getThreadBundles(email)
+    val adminThreadIds = firebaseFacade.getAdminThreadIds(email)
+    threadBundles.zip(adminThreadIds).map { case (threadBundles, adminThreadIds) =>
+      val threadsDeletionValues = buildThreadsDeletionValues(email, threadBundles, adminThreadIds, residentLabels.keys.toList)
+      val allDeletedMessageIds = findDeletedMessageIds(adminThreadIds, threadBundles)
+      threadBundles.flatMap { threadBundle =>
+        val deletedMessageIds = allDeletedMessageIds.get(threadBundle.thread.id).fold[List[MessageId]](List())(identity)
+        def adminThreadValues = buildThreadValues(adminContainerPath(email), threadBundle, residentLabels, deletedMessageIds)
+        def buildResidentThreadValues =
+          findResidentFromLabels(threadBundle.lastUntrashedMessage.get.labels, residentLabels).fold[Map[String, AnyRef]](Map())(resident => {
+            buildThreadValues(residentContainerPath(email, resident), threadBundle, residentLabels, deletedMessageIds)
+          })
+        threadsDeletionValues ++ adminThreadValues ++ buildResidentThreadValues
+      }.toMap
+    }.flatMap { values =>
+      val printableValues = TreeMap(values.toSeq: _*).mkString("\n")
+      Logger.debug(s"Saving values: \n$printableValues")
+      firebaseFacade.saveMessages(values)
     }
-
-    val query = MessageService.allConnectusMessages
-    val threadSummaries = gmailClient.listThreads(email, query).flatMap { threads =>
-      val messages = threads.map(thread => gmailClient.listMessagesOfThread(email, thread.id).map(ThreadSummary(thread, _)))
-      Future.sequence(messages)
-    }
-    threadSummaries
-      .flatMap { threadSummaries => augmentThreadSummariesWithLastMessage(threadSummaries) }
-      .map { threadSummaries =>
-        def findResidentByLabel(labels: List[GmailLabel]): Option[Resident] =
-          labels.flatMap { gmailLabel =>
-            residentLabels.find { case (resident, label) => resident.labelId.fold(false)(labelId => gmailLabel.id == labelId) }
-          }.headOption.map { case (resident, label) => resident }
-        threadSummaries.flatMap { threadSummary =>
-          def valuesForAdmin = toMap(email, "admin", threadSummary, residentLabels)
-          findResidentByLabel(threadSummary.lastMessage.get.labels).fold[Map[String, AnyRef]](valuesForAdmin)(resident =>
-            valuesForAdmin ++ toMap(email, resident.id, threadSummary, residentLabels) ++ valuesForAdmin.toList)
-        }.toMap
-      }.flatMap(firebaseFacade.saveMessages(_))
   }
 
-  private def toMap(email: Email, owner: String, threadSummary: ThreadSummary, residentLabels: Map[Resident, Label]): Map[String, AnyRef] = {
-    val path = s"messages/${Util.encode(email)}/${owner}"
-    val lastMessagePath = s"$path/inbox/${threadSummary.thread.id}/lastMessage"
-    val threadLastMessage = threadSummary.lastMessage.fold[Map[String, AnyRef]](
-      Map(lastMessagePath -> null))(lastMessage => toMap(lastMessagePath, threadSummary.thread, lastMessage, residentLabels))
-    val threadInfoAsMap = Map[String, AnyRef](
-      s"$path/inbox/${threadSummary.thread.id}/id" -> threadSummary.thread.id,
-      s"$path/inbox/${threadSummary.thread.id}/snippet" -> threadSummary.thread.snippet)
-    val messagesAsMap = toMap(path, threadSummary.thread, threadSummary.messages, residentLabels)
-    threadLastMessage ++ threadInfoAsMap ++ messagesAsMap
+  def adminContainerPath(email: Email) = s"messages/${Util.encode(email)}/admin"
+
+  def residentContainerPath(email: Email, resident: Resident) = s"messages/${Util.encode(email)}/${resident.id}"
+
+  def findResidentFromLabels(labels: List[GmailLabel], residentLabels: Map[Resident, GmailLabel]): Option[Resident] =
+    labels.flatMap { gmailLabel =>
+      residentLabels.find { case (resident, label) => resident.labelId.fold(false)(labelId => gmailLabel.id == labelId) }
+    }.headOption.map { case (resident, label) => resident }
+
+  def buildThreadsDeletionValues(email: Email, threadBundles: List[ThreadBundle], adminThreadIds: Map[ThreadId, List[MessageId]], residents: List[Resident]) =
+    findDeletedThreadIds(adminThreadIds, threadBundles).flatMap { threadId =>
+      val forAdmin = Map[String, AnyRef](
+        s"${adminContainerPath(email)}/inbox/${threadId}" -> null,
+        s"${adminContainerPath(email)}/threads/${threadId}" -> null)
+      val forResidents = residents.flatMap(resident =>
+        Map(
+          s"${residentContainerPath(email, resident)}/inbox/${threadId}" -> null,
+          s"${residentContainerPath(email, resident)}/threads/${threadId}" -> null)).toMap[String, AnyRef]
+      forAdmin ++ forResidents
+    }.toMap
+
+  def findDeletedThreadIds(adminThreadIds: Map[ThreadId, List[MessageId]], threadBundles: List[ThreadBundle]): List[ThreadId] =
+    adminThreadIds.filter { case (threadId, messageIds) => !threadBundles.map(_.thread.id).contains(threadId) }.keys.toList
+
+  def findDeletedMessageIds(adminThreadIds: Map[ThreadId, List[MessageId]], threadBundles: List[ThreadBundle]): Map[ThreadId, List[MessageId]] =
+    adminThreadIds.flatten { case (threadId, messageIds) =>
+      threadBundles.find(_.thread.id == threadId).find(_.thread.id == threadId).map(threadSummary => {
+        val messages = threadSummary.messages
+        val messageDeleted = messageIds.filter(!messages.map(_.id).contains(_))
+        (threadId, messageDeleted)
+      })
+    }.toMap
+
+  private def buildThreadValues(containerPath: String, threadBundle: ThreadBundle, residentLabels: Map[Resident, GmailLabel], deletedMessageIds: List[MessageId]): Map[String, AnyRef] = {
+    val inboxValues = buildInboxValues(s"$containerPath/inbox", threadBundle, residentLabels)
+    val threadsValues = buildThreadsValues(s"$containerPath/threads", threadBundle, residentLabels, deletedMessageIds)
+    inboxValues ++ threadsValues
   }
 
-  private def toMap(path: String, thread: GmailThread, messages: List[GmailMessage], residentLabels: Map[Resident, Label]): Map[String, AnyRef] =
-    messages.flatMap { message => toMap(s"$path/threads/${thread.id}/${message.id}", thread, message, residentLabels) }.toMap
+  private def buildInboxValues(inboxPath: String, threadBundle: ThreadBundle, residentLabels: Map[Resident, GmailLabel]): Map[String, AnyRef] = {
+    val threadSummaryPath = s"$inboxPath/${threadBundle.thread.id}"
+    val threadSummaryInfoValues = Map[String, AnyRef](
+      s"$threadSummaryPath/id" -> threadBundle.thread.id,
+      s"$threadSummaryPath/snippet" -> threadBundle.thread.snippet)
+    val lastMessagePath = s"$threadSummaryPath/lastMessage"
+    val threadLastMessageValues = threadBundle.lastUntrashedMessage.fold[Map[String, AnyRef]](
+      Map(lastMessagePath -> null))(lastMessage => buildMessageValues(lastMessagePath, lastMessage, residentLabels))
+    threadSummaryInfoValues ++ threadLastMessageValues
+  }
 
-  private def toMap(path: String, thread: GmailThread, message: GmailMessage, residentLabels: Map[Resident, Label]): Map[String, AnyRef] = {
-    val labelsAsMap = message.labels.map { label => s"$path/labels/${label.id}" -> label.name }.toMap
+  private def buildThreadsValues(threadsPath: String, threadBundle: ThreadBundle, residentLabels: Map[Resident, GmailLabel], deletedMessageIds: List[MessageId]): Map[String, AnyRef] = {
+    val messagesValues = threadBundle.messages.flatMap { message => buildMessageValues(s"$threadsPath/${threadBundle.thread.id}/${message.id}", message, residentLabels) }.toMap
+    val messagesDeletionValues = deletedMessageIds.map { messageIds => s"$threadsPath/${threadBundle.thread.id}/${messageIds}" -> null }.toMap[String, AnyRef]
+    messagesValues ++ messagesDeletionValues
+  }
+
+  private def buildMessageValues(messagePath: String, message: GmailMessage, residentLabels: Map[Resident, GmailLabel]): Map[String, AnyRef] = {
+    val labelsAsMap = message.labels.map { label => s"$messagePath/labels/${label.id}" -> label.name }.toMap
     val residentAsMap = residentLabels
-      .find { case (resident, label) => message.labels.find(gmailLabel => gmailLabel.name == label.getName).isDefined }
+      .find { case (resident, label) =>
+        message.labels.find(gmailLabel => gmailLabel.name == label.name).isDefined
+      }
       .map { case (resident, label) =>
         Map(
-          s"$path/resident/${firebaseFacade.ResidentIdProperty}" -> resident.id,
-          s"$path/resident/${firebaseFacade.ResidentNameProperty}" -> resident.name,
-          s"$path/resident/${firebaseFacade.ResidentLabelNameProperty}" -> resident.labelName)
-      }.fold(Map[String, AnyRef](s"$path/threads/${thread.id}/${message.id}/resident" -> null))(identity)
+          s"$messagePath/resident/${ResidentIdProperty}" -> resident.id,
+          s"$messagePath/resident/${ResidentNameProperty}" -> resident.name,
+          s"$messagePath/resident/${ResidentLabelNameProperty}" -> resident.labelName)
+      }.fold(Map[String, AnyRef](s"$messagePath/resident" -> null))(identity)
     val messagesAsMap = Map(
-      s"$path/from" -> message.from.get.address,
-      s"$path/date" -> message.date.get.toString,
-      s"$path/subject" -> message.subject.get,
-      s"$path/content" -> message.content.get)
-
+      s"$messagePath/from" -> foldToBlank[InternetAddress](message.from, _.address),
+      s"$messagePath/date" -> foldToBlank[ZonedDateTime](message.date, _.toString),
+      s"$messagePath/subject" -> foldToBlank[String](message.subject, identity),
+      s"$messagePath/content" -> foldToBlank[String](message.content, identity))
     labelsAsMap ++ residentAsMap ++ messagesAsMap
   }
 
-  private def getOrCreate(email: Email, filter: Label => Boolean, labelName: String): Future[Label] = {
+  private def foldToBlank[T](option: Option[T], f: T => String): String = option.fold[String]("")(f)
+
+  private def getOrCreate(email: Email, filter: Label => Boolean, labelName: String): Future[GmailLabel] = {
     gmailClient.listLabels(email).flatMap { labels =>
       val labelOpt = labels.find(filter)
       if (labelOpt.isDefined) {
-        fs(labelOpt.get)
+        val label: Label = labelOpt.get
+        fs(GmailLabel(label.getId, label.getName))
       } else {
         gmailClient.createLabel(email, labelName)
+          .map(label => GmailLabel(label.getId, label.getName))
       }
+    }
+  }
+}
+
+class MessageMapper @Inject()(gmailClient: GmailClient) {
+  def getThreadBundles(email: Email): Future[List[ThreadBundle]] = {
+    val query = MessageService.allConnectusMessages
+    gmailClient.listThreads(email, query).flatMap { threads =>
+      val messages = threads.map(thread =>
+        gmailClient
+          .listMessagesOfThread(email, thread.id)
+          .map(ThreadBundle(thread, _)))
+      Future.sequence(messages)
     }
   }
 }

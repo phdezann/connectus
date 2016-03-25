@@ -43,16 +43,19 @@ class AccountInitializerTest extends FunSuiteLike with Mockito {
     val googleIdTokenVerifier = mock[GoogleIdTokenVerifier]
     val googleAuthorization = mock[GoogleAuthorization]
     val appConf = mock[AppConf]
+    val messageService = mock[MessageService]
 
     when(googleIdTokenVerifier.verify(any[GoogleIdToken])) thenReturn true
     when(appConf.getWebComponentClientId) thenReturn webComponentClientId
     when(appConf.getAndroidAppComponentClientId) thenReturn "962110749658-f3rmklm7clp0jsokdf2mfi83s11sra2r.apps.googleusercontent.com"
     when(googleAuthorization.convert(any[String])) thenReturn fs(response)
 
-    val injector: Injector = new GuiceInjectorBuilder().overrides(bind[GoogleIdTokenVerifier].toInstance(googleIdTokenVerifier))
+    val injector = new GuiceInjectorBuilder()
+      .overrides(bind[GoogleIdTokenVerifier].toInstance(googleIdTokenVerifier))
       .overrides(bind[FirebaseFacade].toInstance(firebaseFacade))
       .overrides(bind[AppConf].toInstance(appConf))
       .overrides(bind[GoogleAuthorization].toInstance(googleAuthorization))
+      .overrides(bind[MessageService].toInstance(messageService))
       .build
 
     injector.instanceOf[AccountInitializer].trade(androidId, "authorizationCode")

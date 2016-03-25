@@ -130,15 +130,15 @@ class GmailClient @Inject()(appConf: AppConf, googleAuthorization: GoogleAuthori
     schedule(request)
   }
 
-  def addLabel(userId: String, query: String, label: Label): Future[List[Message]] =
+  def addLabel(userId: String, query: String, labelId: String): Future[List[Message]] =
     for {
       gmail <- getService(userId)
       partialMessages <- fetchMessages(gmail, query)
-      messages <- addLabel(gmail, partialMessages, label)
+      messages <- addLabel(gmail, partialMessages, labelId)
     } yield messages
 
-  private def addLabel(gmail: Gmail, partialMessages: List[Message], label: Label): Future[List[Message]] = {
-    val modifyMessageRequest = new ModifyMessageRequest().setAddLabelIds(List(label.getId).asJava)
+  private def addLabel(gmail: Gmail, partialMessages: List[Message], labelId: String): Future[List[Message]] = {
+    val modifyMessageRequest = new ModifyMessageRequest().setAddLabelIds(List(labelId).asJava)
     val requests = partialMessages.map(pm => gmail.users().messages().modify("me", pm.getId, modifyMessageRequest))
     executeBatch(gmail, requests)
   }
@@ -191,19 +191,10 @@ class GmailClient @Inject()(appConf: AppConf, googleAuthorization: GoogleAuthori
       messages <- listMessages(gmail, partialMessages)
     } yield messages
 
-  def getMessage(userId: String, messageId: String): Future[Option[GmailMessage]] =
-    for {
-      gmail <- getService(userId)
-      message <- getMessage(gmail, messageId)
-    } yield message
-
-  private def getMessage(gmail: Gmail, messageId: String): Future[Option[GmailMessage]] =
-    listMessages(gmail, List(new Message().setId(messageId))) map {_.headOption}
-
   private def listMessages(gmail: Gmail, partialMessages: List[Message]): Future[List[GmailMessage]] = {
     val messagesRequests = partialMessages.map(pm => gmail.users.messages.get("me", pm.getId))
     for {
-      gmailMessages <- executeBatch(gmail, messagesRequests.toList)
+      gmailMessages <- executeBatch(gmail, messagesRequests)
       gmailLabels <- fetchLabels(gmail, gmailMessages)
       messages <- fs(Converter(gmailMessages, gmailLabels))
     } yield messages
@@ -258,7 +249,7 @@ class GmailClient @Inject()(appConf: AppConf, googleAuthorization: GoogleAuthori
       val historyId = new java.math.BigDecimal(message.getHistoryId)
       val labelIds = message.getLabelIds.asScala.toList.map(labelId => toGmailLabels(labels, labelId)).flatten
       val complete = dateOpt.isDefined && fromOpt.isDefined && subjectOpt.isDefined && contentOpt.isDefined
-      GmailMessage(message.getId, dateOpt, fromOpt, toOpt, subjectOpt, contentOpt, historyId, message.getThreadId, labelIds, complete)
+      GmailMessage(message.getId, dateOpt, fromOpt, toOpt, subjectOpt, contentOpt, historyId, labelIds, complete)
     }
 
     def apply(threads: List[Thread]): List[GmailThread] = threads.map(Converter(_))
