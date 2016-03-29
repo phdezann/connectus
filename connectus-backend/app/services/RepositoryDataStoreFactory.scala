@@ -17,7 +17,9 @@ class RepositoryDataStoreFactory @Inject()(firebaseFacade: FirebaseFacade) exten
     // this method needs to be implemented when tokens are refreshed by Credential.refreshToken()
     override def set(key: String, value: StoredCredential): DataStore[StoredCredential] = {
       val credential = value.asInstanceOf[StoredCredential]
-      val res = firebaseFacade.updateAccessToken(key, credential.getAccessToken, credential.getExpirationTimeMilliseconds)
+      val accessTokenOpt: Option[String] = Option(credential.getAccessToken)
+      val millisecondsOpt: Option[Long] = Option(credential.getExpirationTimeMilliseconds).map(Long2long(_))
+      val res = firebaseFacade.updateAccessToken(key, accessTokenOpt, millisecondsOpt)
       // it is safe to block here as we are already inside a blocking block
       Await.result(res, Duration.Inf)
       this

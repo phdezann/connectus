@@ -110,11 +110,11 @@ class FirebaseFacade @Inject()(appConf: AppConf) {
     }
   }
 
-  def updateAccessToken(email: Email, accessToken: String, expirationTimeInMilliSeconds: Long): Future[Unit] = {
+  def updateAccessToken(email: Email, accessToken: Option[String], expirationTimeInMilliSeconds: Option[Long]): Future[Unit] = {
     val encodedEmail = Util.encode(email)
     val values: Map[String, AnyRef] = Map(
-      s"$UsersPath/$encodedEmail/$AccessTokenPath" -> accessToken,
-      s"$UsersPath/$encodedEmail/$ExpirationTimeMilliSecondsPath" -> Long.box(expirationTimeInMilliSeconds))
+      s"$UsersPath/$encodedEmail/$AccessTokenPath" -> accessToken.fold[String](null)(identity),
+      s"$UsersPath/$encodedEmail/$ExpirationTimeMilliSecondsPath" -> expirationTimeInMilliSeconds.fold[java.lang.Long](null)(Long.box(_)))
     val ref = new Firebase(appConf.getFirebaseUrl)
     FutureWrappers.updateChildrenFuture(ref, values.asJava)
   }
