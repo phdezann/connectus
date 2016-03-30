@@ -180,13 +180,18 @@ class MessageService @Inject()(gmailClient: GmailClient, firebaseFacade: Firebas
       }.fold(Map[String, AnyRef](s"$messagePath/resident" -> null))(identity)
     val messagesAsMap = Map(
       s"$messagePath/from" -> foldToBlank[InternetAddress](message.from, _.address),
-      s"$messagePath/date" -> foldToBlank[ZonedDateTime](message.date, _.toString),
+      s"$messagePath/date" -> foldToBlank[ZonedDateTime](message.date, formatDateWithIsoFormatter(_)),
       s"$messagePath/subject" -> foldToBlank[String](message.subject, identity),
       s"$messagePath/content" -> foldToBlank[String](message.content, identity))
     labelsAsMap ++ labelsDeletionsAsMap ++ residentAsMap ++ messagesAsMap
   }
 
   private def foldToBlank[T](option: Option[T], f: T => String): String = option.fold[String]("")(f)
+
+  private def formatDateWithIsoFormatter(date: ZonedDateTime): String = {
+    def removeZonedIdIfAny(date: String) = StringUtils.substringBefore(date, "[")
+    removeZonedIdIfAny(date.format(DateTimeFormatter.ISO_ZONED_DATE_TIME))
+  }
 
   private def getOrCreate(email: Email, filter: Label => Boolean, labelName: String): Future[GmailLabel] = {
     gmailClient.listLabels(email).flatMap { labels =>
