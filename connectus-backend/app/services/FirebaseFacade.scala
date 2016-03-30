@@ -10,13 +10,13 @@ import com.google.api.client.auth.oauth2.TokenResponseException
 import com.google.api.client.googleapis.auth.oauth2.GoogleTokenResponse
 import com.google.common.base.Throwables
 import common._
-import model.{Contact, Resident}
+import model.{Contact, GmailLabel, Resident}
 import play.api.Logger
+import services.FirebaseFacade._
 
 import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Future, Promise}
-import FirebaseFacade._
 
 object FirebaseFacade {
   val AuthorizationCodesPath = "authorization_codes"
@@ -39,6 +39,10 @@ object FirebaseFacade {
   val LoginCodeSuccess = "SUCCESS"
   val LoginCodeInvalidGrant = "INVALID_GRANT"
   val LoginCodeFailure = "FAILURE"
+
+  case class AuthorizationCode(authorizationCodeId: String, androidId: String, authorizationCode: String, tradeCode: Option[String])
+  case class UserCredential(refreshToken: String, accessToken: String, expirationTimeInMilliSeconds: Long)
+  case class MessagesSnapshot(allThreadIds: Map[ThreadId, List[MessageId]] = Map(), messagesLabels: Map[MessageId, List[GmailLabel]] = Map())
 }
 
 @Singleton
@@ -54,7 +58,6 @@ class FirebaseFacade @Inject()(appConf: AppConf) {
       })
   }
 
-  case class AuthorizationCode(authorizationCodeId: String, androidId: String, authorizationCode: String, tradeCode: Option[String])
   def listenAuthorizationCodes(listener: AuthorizationCode => Unit) = {
     val ref = new Firebase(s"${appConf.getFirebaseUrl}/$AuthorizationCodesPath")
     ref.addChildEventListener(new ChildEventListener {
@@ -119,15 +122,14 @@ class FirebaseFacade @Inject()(appConf: AppConf) {
     FutureWrappers.updateChildrenFuture(ref, values.asJava)
   }
 
-  case class Credential(refreshToken: String, accessToken: String, expirationTimeInMilliSeconds: Long)
-  def getCredentials(email: Email): Future[Credential] = {
+  def getCredentials(email: Email): Future[UserCredential] = {
     val encodedEmail = Util.encode(email)
     val ref = new Firebase(s"${appConf.getFirebaseUrl}/$UsersPath/$encodedEmail")
     FutureWrappers.getValueFuture(ref).map { dataSnapshot =>
       val refreshToken = dataSnapshot.child(RefreshTokenPath).getValue.asInstanceOf[String]
       val accessToken = dataSnapshot.child(AccessTokenPath).getValue.asInstanceOf[String]
       val expirationTimeInMilliSeconds = Long.unbox(dataSnapshot.child(ExpirationTimeMilliSecondsPath).getValue)
-      Credential(refreshToken, accessToken, expirationTimeInMilliSeconds)
+      UserCredential(refreshToken, accessToken, expirationTimeInMilliSeconds)
     }
   }
 
@@ -146,19 +148,29 @@ class FirebaseFacade @Inject()(appConf: AppConf) {
     })
   }
 
-  def getAdminThreadIds(email: Email): Future[Map[ThreadId, List[MessageId]]] = {
+  def getMessagesSnapshot(email: Email): Future[MessagesSnapshot] = {
     def toChildrenList(snapshot: DataSnapshot) = snapshot.getChildren.iterator().asScala.toList
     val encodedEmail = Util.encode(email)
     val ref = new Firebase(s"${appConf.getFirebaseUrl}/messages/$encodedEmail/admin/threads")
     FutureWrappers.getValueFuture(ref).map(snapshot => {
-      val pairs = toChildrenList(snapshot).flatMap(thread => {
+      val messages = toChildrenList(snapshot)
+      val threadsPairs = messages.flatMap(thread => {
         toChildrenList(thread).map(message => {
           val threadId = thread.getKey
           val messageId = message.getKey
           (threadId, messageId)
         })
       })
-      pairs.groupBy(_._1).mapValues(_.map(_._2))
+      val labelsPair = messages.flatMap(thread => {
+        toChildrenList(thread).map(message => {
+          val messageId = message.getKey
+          val labels = toChildrenList(message.child("labels")).map(label => GmailLabel(label.getKey, label.getValue.asInstanceOf[String]))
+          (messageId, labels)
+        })
+      })
+      val threads = threadsPairs.groupBy(_._1).mapValues(_.map(_._2))
+      val labels = labelsPair.toMap
+      MessagesSnapshot(threads, labels)
     })
   }
 

@@ -8,6 +8,7 @@ import org.scalatest.FunSuiteLike
 import org.specs2.mock.Mockito
 import play.api.inject._
 import play.api.inject.guice.GuiceInjectorBuilder
+import services.FirebaseFacade.MessagesSnapshot
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
@@ -86,7 +87,7 @@ class MessageServiceTest extends FunSuiteLike with Mockito {
   test("save threads to empty database") {
     val message = GmailMessage(threadId2Message1Id, None, None, None, None, None, 0, List(), true)
 
-    when(firebaseFacade.getAdminThreadIds(any)) thenReturn fs(Map[ThreadId, List[MessageId]]())
+    when(firebaseFacade.getMessagesSnapshot(any)) thenReturn fs(MessagesSnapshot())
     when(firebaseFacade.saveMessages(any)) thenReturn fs(())
     when(gmailClient.listThreads(any, any)) thenReturn fs(List(thread2))
     when(gmailClient.listMessagesOfThread(any, any)) thenReturn fs(List(message))
@@ -115,7 +116,7 @@ class MessageServiceTest extends FunSuiteLike with Mockito {
     val message1 = GmailMessage(threadId1Message1Id, None, None, None, None, None, 0, List(residentLabels(roger)), true)
     val message2 = GmailMessage(threadId2Message1Id, None, None, None, None, None, 0, List(residentLabels(robert)), true)
 
-    when(firebaseFacade.getAdminThreadIds(any)) thenReturn fs(Map[ThreadId, List[MessageId]]())
+    when(firebaseFacade.getMessagesSnapshot(any)) thenReturn fs(MessagesSnapshot())
     when(firebaseFacade.saveMessages(any)) thenReturn fs(())
     when(gmailClient.listThreads(any, any)) thenReturn fs(List(thread1, thread2))
     when(gmailClient.listMessagesOfThread(accountId, Thread1Id)) thenReturn fs(List(message1))
@@ -205,7 +206,7 @@ class MessageServiceTest extends FunSuiteLike with Mockito {
     val thread = GmailThread(Thread2Id, "", 0)
     val message = GmailMessage(threadId2Message1Id, None, None, None, None, None, 0, List(residentLabels(robert)), true)
 
-    when(firebaseFacade.getAdminThreadIds(any)) thenReturn fs(Map[ThreadId, List[MessageId]](Thread1Id -> List(threadId1Message1Id)))
+    when(firebaseFacade.getMessagesSnapshot(any)) thenReturn fs(MessagesSnapshot(allThreadIds = Map[ThreadId, List[MessageId]](Thread1Id -> List(threadId1Message1Id))))
     when(firebaseFacade.saveMessages(any)) thenReturn fs(())
     when(gmailClient.listThreads(any, any)) thenReturn fs(List(thread))
     when(gmailClient.listMessagesOfThread(accountId, Thread2Id)) thenReturn fs(List(message))
@@ -263,7 +264,7 @@ class MessageServiceTest extends FunSuiteLike with Mockito {
   test("save threads with a removed message") {
     val message = GmailMessage(threadId1Message2Id, None, None, None, None, None, 0, List(residentLabels(roger)), true)
 
-    when(firebaseFacade.getAdminThreadIds(any)) thenReturn fs(Map(Thread1Id -> List(threadId1Message1Id, threadId1Message2Id)))
+    when(firebaseFacade.getMessagesSnapshot(any)) thenReturn fs(MessagesSnapshot(allThreadIds = Map(Thread1Id -> List(threadId1Message1Id, threadId1Message2Id))))
     when(gmailClient.listThreads(any, any)) thenReturn fs(List(thread1))
     when(gmailClient.listMessagesOfThread(accountId, Thread1Id)) thenReturn fs(List(message))
     when(firebaseFacade.saveMessages(any)) thenReturn fs(())
@@ -310,6 +311,62 @@ class MessageServiceTest extends FunSuiteLike with Mockito {
       "messages/me@gmail,com/admin/threads/t1/t1m2/resident/id" -> "1",
       "messages/me@gmail,com/admin/threads/t1/t1m2/resident/labelName" -> "Roger",
       "messages/me@gmail,com/admin/threads/t1/t1m2/resident/name" -> "roger",
+      "messages/me@gmail,com/admin/threads/t1/t1m2/subject" -> "")
+    verify(firebaseFacade).saveMessages(values)
+  }
+
+  test("update labels") {
+    val message = GmailMessage(threadId1Message2Id, None, None, None, None, None, 0, List(residentLabels(robert)), true)
+
+    when(firebaseFacade.getMessagesSnapshot(any)) thenReturn fs(MessagesSnapshot(messagesLabels = Map(threadId1Message2Id -> List(residentLabels(roger)))))
+    when(gmailClient.listThreads(any, any)) thenReturn fs(List(thread1))
+    when(gmailClient.listMessagesOfThread(accountId, Thread1Id)) thenReturn fs(List(message))
+    when(firebaseFacade.saveMessages(any)) thenReturn fs(())
+
+    val messageService = injector.instanceOf[MessageService]
+    val result = messageService.saveThreads(accountId, residentLabels)
+    Await.ready(result, Duration.Inf)
+
+    val values = Map(
+      "messages/me@gmail,com/2/inbox/t1/id" -> "t1",
+      "messages/me@gmail,com/2/inbox/t1/lastMessage/content" -> "",
+      "messages/me@gmail,com/2/inbox/t1/lastMessage/date" -> "",
+      "messages/me@gmail,com/2/inbox/t1/lastMessage/from" -> "",
+      "messages/me@gmail,com/2/inbox/t1/lastMessage/labels/Label_50" -> null,
+      "messages/me@gmail,com/2/inbox/t1/lastMessage/labels/Label_51" -> "robert",
+      "messages/me@gmail,com/2/inbox/t1/lastMessage/resident/id" -> "2",
+      "messages/me@gmail,com/2/inbox/t1/lastMessage/resident/labelName" -> "Robert",
+      "messages/me@gmail,com/2/inbox/t1/lastMessage/resident/name" -> "robert",
+      "messages/me@gmail,com/2/inbox/t1/lastMessage/subject" -> "",
+      "messages/me@gmail,com/2/inbox/t1/snippet" -> "",
+      "messages/me@gmail,com/2/threads/t1/t1m2/content" -> "",
+      "messages/me@gmail,com/2/threads/t1/t1m2/date" -> "",
+      "messages/me@gmail,com/2/threads/t1/t1m2/from" -> "",
+      "messages/me@gmail,com/2/threads/t1/t1m2/labels/Label_50" -> null,
+      "messages/me@gmail,com/2/threads/t1/t1m2/labels/Label_51" -> "robert",
+      "messages/me@gmail,com/2/threads/t1/t1m2/resident/id" -> "2",
+      "messages/me@gmail,com/2/threads/t1/t1m2/resident/labelName" -> "Robert",
+      "messages/me@gmail,com/2/threads/t1/t1m2/resident/name" -> "robert",
+      "messages/me@gmail,com/2/threads/t1/t1m2/subject" -> "",
+      "messages/me@gmail,com/admin/inbox/t1/id" -> "t1",
+      "messages/me@gmail,com/admin/inbox/t1/lastMessage/content" -> "",
+      "messages/me@gmail,com/admin/inbox/t1/lastMessage/date" -> "",
+      "messages/me@gmail,com/admin/inbox/t1/lastMessage/from" -> "",
+      "messages/me@gmail,com/admin/inbox/t1/lastMessage/labels/Label_50" -> null,
+      "messages/me@gmail,com/admin/inbox/t1/lastMessage/labels/Label_51" -> "robert",
+      "messages/me@gmail,com/admin/inbox/t1/lastMessage/resident/id" -> "2",
+      "messages/me@gmail,com/admin/inbox/t1/lastMessage/resident/labelName" -> "Robert",
+      "messages/me@gmail,com/admin/inbox/t1/lastMessage/resident/name" -> "robert",
+      "messages/me@gmail,com/admin/inbox/t1/lastMessage/subject" -> "",
+      "messages/me@gmail,com/admin/inbox/t1/snippet" -> "",
+      "messages/me@gmail,com/admin/threads/t1/t1m2/content" -> "",
+      "messages/me@gmail,com/admin/threads/t1/t1m2/date" -> "",
+      "messages/me@gmail,com/admin/threads/t1/t1m2/from" -> "",
+      "messages/me@gmail,com/admin/threads/t1/t1m2/labels/Label_50" -> null,
+      "messages/me@gmail,com/admin/threads/t1/t1m2/labels/Label_51" -> "robert",
+      "messages/me@gmail,com/admin/threads/t1/t1m2/resident/id" -> "2",
+      "messages/me@gmail,com/admin/threads/t1/t1m2/resident/labelName" -> "Robert",
+      "messages/me@gmail,com/admin/threads/t1/t1m2/resident/name" -> "robert",
       "messages/me@gmail,com/admin/threads/t1/t1m2/subject" -> "")
     verify(firebaseFacade).saveMessages(values)
   }

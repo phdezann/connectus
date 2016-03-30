@@ -85,16 +85,16 @@ class MessageService @Inject()(gmailClient: GmailClient, firebaseFacade: Firebas
 
   def saveThreads(email: Email, residentLabels: Map[Resident, GmailLabel]) = {
     val threadBundles = messageMapper.getThreadBundles(email)
-    val adminThreadIds = firebaseFacade.getAdminThreadIds(email)
-    threadBundles.zip(adminThreadIds).map { case (threadBundles, adminThreadIds) =>
-      val threadsDeletionValues = buildThreadsDeletionValues(email, threadBundles, adminThreadIds, residentLabels.keys.toList)
-      val allDeletedMessageIds = findDeletedMessageIds(adminThreadIds, threadBundles)
+    val adminThreadIds = firebaseFacade.getMessagesSnapshot(email)
+    threadBundles.zip(adminThreadIds).map { case (threadBundles, snapshot) =>
+      val threadsDeletionValues = buildThreadsDeletionValues(email, threadBundles, snapshot.allThreadIds, residentLabels.keys.toList)
+      val allDeletedMessageIds = findDeletedMessageIds(snapshot.allThreadIds, threadBundles)
       threadBundles.flatMap { threadBundle =>
         val deletedMessageIds = allDeletedMessageIds.get(threadBundle.thread.id).fold[List[MessageId]](List())(identity)
-        def adminThreadValues = buildThreadValues(adminContainerPath(email), threadBundle, residentLabels, deletedMessageIds)
+        def adminThreadValues = buildThreadValues(adminContainerPath(email), threadBundle, residentLabels, deletedMessageIds, snapshot.messagesLabels)
         def buildResidentThreadValues =
           findResidentFromLabels(threadBundle.lastUntrashedMessage.get.labels, residentLabels).fold[Map[String, AnyRef]](Map())(resident => {
-            buildThreadValues(residentContainerPath(email, resident), threadBundle, residentLabels, deletedMessageIds)
+            buildThreadValues(residentContainerPath(email, resident), threadBundle, residentLabels, deletedMessageIds, snapshot.messagesLabels)
           })
         threadsDeletionValues ++ adminThreadValues ++ buildResidentThreadValues
       }.toMap
@@ -138,31 +138,36 @@ class MessageService @Inject()(gmailClient: GmailClient, firebaseFacade: Firebas
       })
     }.toMap
 
-  private def buildThreadValues(containerPath: String, threadBundle: ThreadBundle, residentLabels: Map[Resident, GmailLabel], deletedMessageIds: List[MessageId]): Map[String, AnyRef] = {
-    val inboxValues = buildInboxValues(s"$containerPath/inbox", threadBundle, residentLabels)
-    val threadsValues = buildThreadsValues(s"$containerPath/threads", threadBundle, residentLabels, deletedMessageIds)
+  private def buildThreadValues(containerPath: String, threadBundle: ThreadBundle, residentLabels: Map[Resident, GmailLabel], deletedMessageIds: List[MessageId], messagesLabels: Map[MessageId, List[GmailLabel]]): Map[String, AnyRef] = {
+    val inboxValues = buildInboxValues(s"$containerPath/inbox", threadBundle, residentLabels, messagesLabels)
+    val threadsValues = buildThreadsValues(s"$containerPath/threads", threadBundle, residentLabels, deletedMessageIds, messagesLabels)
     inboxValues ++ threadsValues
   }
 
-  private def buildInboxValues(inboxPath: String, threadBundle: ThreadBundle, residentLabels: Map[Resident, GmailLabel]): Map[String, AnyRef] = {
+  private def buildInboxValues(inboxPath: String, threadBundle: ThreadBundle, residentLabels: Map[Resident, GmailLabel], messagesLabels: Map[MessageId, List[GmailLabel]]): Map[String, AnyRef] = {
     val threadSummaryPath = s"$inboxPath/${threadBundle.thread.id}"
     val threadSummaryInfoValues = Map[String, AnyRef](
       s"$threadSummaryPath/id" -> threadBundle.thread.id,
       s"$threadSummaryPath/snippet" -> threadBundle.thread.snippet)
     val lastMessagePath = s"$threadSummaryPath/lastMessage"
     val threadLastMessageValues = threadBundle.lastUntrashedMessage.fold[Map[String, AnyRef]](
-      Map(lastMessagePath -> null))(lastMessage => buildMessageValues(lastMessagePath, lastMessage, residentLabels))
+      Map(lastMessagePath -> null))(lastMessage => buildMessageValues(lastMessagePath, lastMessage, residentLabels, messagesLabels))
     threadSummaryInfoValues ++ threadLastMessageValues
   }
 
-  private def buildThreadsValues(threadsPath: String, threadBundle: ThreadBundle, residentLabels: Map[Resident, GmailLabel], deletedMessageIds: List[MessageId]): Map[String, AnyRef] = {
-    val messagesValues = threadBundle.messages.flatMap { message => buildMessageValues(s"$threadsPath/${threadBundle.thread.id}/${message.id}", message, residentLabels) }.toMap
+  private def buildThreadsValues(threadsPath: String, threadBundle: ThreadBundle, residentLabels: Map[Resident, GmailLabel], deletedMessageIds: List[MessageId], messagesLabels: Map[MessageId, List[GmailLabel]]): Map[String, AnyRef] = {
+    val messagesValues = threadBundle.messages.flatMap { message => buildMessageValues(s"$threadsPath/${threadBundle.thread.id}/${message.id}", message, residentLabels, messagesLabels) }.toMap
     val messagesDeletionValues = deletedMessageIds.map { messageIds => s"$threadsPath/${threadBundle.thread.id}/${messageIds}" -> null }.toMap[String, AnyRef]
     messagesValues ++ messagesDeletionValues
   }
 
-  private def buildMessageValues(messagePath: String, message: GmailMessage, residentLabels: Map[Resident, GmailLabel]): Map[String, AnyRef] = {
+  private def buildMessageValues(messagePath: String, message: GmailMessage, residentLabels: Map[Resident, GmailLabel], messagesLabels: Map[MessageId, List[GmailLabel]]): Map[String, AnyRef] = {
     val labelsAsMap = message.labels.map { label => s"$messagePath/labels/${label.id}" -> label.name }.toMap
+    val labelsDeletionsAsMap = messagesLabels
+      .get(message.id)
+      .map(currentLabels => currentLabels.filter(currentLabel => !message.labels.exists(_.id == currentLabel.id)))
+      .map(_.map(label => s"$messagePath/labels/${label.id}" -> null).toMap)
+      .fold(Map[String, AnyRef]())(identity)
     val residentAsMap = residentLabels
       .find { case (resident, label) =>
         message.labels.find(gmailLabel => gmailLabel.name == label.name).isDefined
@@ -178,7 +183,7 @@ class MessageService @Inject()(gmailClient: GmailClient, firebaseFacade: Firebas
       s"$messagePath/date" -> foldToBlank[ZonedDateTime](message.date, _.toString),
       s"$messagePath/subject" -> foldToBlank[String](message.subject, identity),
       s"$messagePath/content" -> foldToBlank[String](message.content, identity))
-    labelsAsMap ++ residentAsMap ++ messagesAsMap
+    labelsAsMap ++ labelsDeletionsAsMap ++ residentAsMap ++ messagesAsMap
   }
 
   private def foldToBlank[T](option: Option[T], f: T => String): String = option.fold[String]("")(f)
