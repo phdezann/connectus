@@ -36,11 +36,11 @@ class MessageServiceTest extends FunSuiteLike with Mockito {
 
   test("buildContactQuery") {
     val contacts = List(Contact("contact1@provider.com", "roger"), Contact("contact2@provider.com", "robert"))
-    assert(MessageService.newMessagesLabel(contacts) == "label:inbox -label:connectus (from:contact1@provider.com OR from:contact2@provider.com)")
+    assert(MessageService.residentUntaggedMessages(contacts) == "label:inbox -label:connectus (from:contact1@provider.com OR from:contact2@provider.com)")
   }
 
   test("buildContactQuery with empty contact list") {
-    assert(MessageService.newMessagesLabel(List()) == "label:inbox -label:connectus label:no-contact")
+    assert(MessageService.residentUntaggedMessages(List()) == "label:inbox -label:connectus label:no-contact")
   }
 
   test("label removed manually") {

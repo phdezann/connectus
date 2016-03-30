@@ -1,6 +1,7 @@
 package services
 
 import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 
 import com.google.api.services.gmail.model.Label
@@ -8,6 +9,7 @@ import common._
 import model.{Contact, GmailLabel, GmailMessage, InternetAddress, Resident, ThreadBundle}
 import play.api.Logger
 import FirebaseFacade._
+import org.apache.commons.lang3.StringUtils
 
 import scala.collection.immutable.TreeMap
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -17,16 +19,10 @@ object MessageService {
   val InboxLabelName = "inbox"
   val ConnectusLabelName = "connectus"
 
-  def newMessagesLabel(contacts: List[Contact]) =
+  def residentUntaggedMessages(contacts: List[Contact]) =
     s"label:$InboxLabelName -label:$ConnectusLabelName ${buildContactQuery(contacts)}"
 
-  def messagesLabel(contacts: List[Contact]) =
-    s"label:$InboxLabelName label:$ConnectusLabelName ${buildContactQuery(contacts)}"
-
-  def allConnectusMessages =
-    s"label:$InboxLabelName label:$ConnectusLabelName"
-
-  def allMessagesLabel = s"label:$InboxLabelName"
+  def allMessages = s"label:$InboxLabelName"
 
   private def buildContactQuery(contacts: List[Contact]) =
     if (contacts.isEmpty) {
@@ -42,42 +38,39 @@ object MessageService {
 
 class MessageService @Inject()(gmailClient: GmailClient, firebaseFacade: FirebaseFacade, messageMapper: MessageMapper) {
 
-  def executeTagInbox(email: Email) = {
-    val action = tagInbox(email)
-    action.onComplete { case _ => Logger.info(s"Messages successfully labelled for $email") }
-    action.onFailure { case e => Logger.error(s"Error while labelling messages for $email", e) }
-  }
-
   def tagInbox(email: Email) = {
-    val residents: Future[Map[Resident, List[Contact]]] = firebaseFacade.getResidentsAndContacts(email)
     def initConnectusLabel: Future[GmailLabel] = getOrCreate(email, _.getName == MessageService.ConnectusLabelName, MessageService.ConnectusLabelName)
     def initLabel(resident: Resident): Future[GmailLabel] = getOrCreate(email, label => resident.labelId.fold(false)(labelId => label.getId == labelId), MessageService.toLabel(resident))
     def addLabel(query: String, label: GmailLabel): Future[_] = gmailClient.addLabel(email, query, label.id)
     def saveResidentLabelId(resident: Resident, label: GmailLabel): Future[Unit] = firebaseFacade.addResidentLabelId(email, resident.id, label.id)
-    def initAllResidentLabels: Future[Map[Resident, GmailLabel]] = residents.flatMap { residents =>
-      val all = residents.map { case (resident, contacts) => initLabel(resident).map(label => (resident, label)) }
+    def initAllResidentLabels(residents: Map[Resident, List[Contact]]): Future[Map[Resident, GmailLabel]] = {
+      val all = residents.map { case (resident, contacts) =>
+        initLabel(resident)
+          .flatMap(label => saveResidentLabelId(resident, label).map(_ => label))
+          .map(label => (resident.copy(labelId = Some(label.id)), label))
+      }
       Future.sequence(all).map(_.toMap)
     }
-    def initAllLabels = for {
+    def initAllLabels(residents: Map[Resident, List[Contact]]): Future[(GmailLabel, Map[Resident, GmailLabel])] = for {
       connectusLabel <- initConnectusLabel
-      residents <- initAllResidentLabels
+      residents <- initAllResidentLabels(residents)
     } yield (connectusLabel, residents)
-    def doLabelMessages(connectusLabel: GmailLabel, residentLabels: Map[Resident, GmailLabel]) = residents.flatMap {
+    def doLabelMessages(connectusLabel: GmailLabel, residentLabels: Map[Resident, GmailLabel]) = firebaseFacade.getResidentsAndContacts(email).flatMap {
       residents =>
         val all: Iterable[Future[Unit]] = residents.map {
           case (resident, contacts) =>
-            val contactsQuery = MessageService.newMessagesLabel(contacts)
+            val contactsQuery = MessageService.residentUntaggedMessages(contacts)
             for {
               messages <- gmailClient.listMessages(email, contactsQuery)
               _ <- addLabel(contactsQuery, residentLabels(resident))
               _ <- addLabel(contactsQuery, connectusLabel)
-              _ <- saveResidentLabelId(resident, residentLabels(resident))
             } yield ()
         }
         Future.sequence(all)
     }
     for {
-      (connectusLabel, residentLabels) <- initAllLabels
+      residents <- firebaseFacade.getResidentsAndContacts(email)
+      (connectusLabel, residentLabels) <- initAllLabels(residents)
       _ <- doLabelMessages(connectusLabel, residentLabels)
       _ <- saveThreads(email, residentLabels)
     } yield ()
@@ -209,7 +202,7 @@ class MessageService @Inject()(gmailClient: GmailClient, firebaseFacade: Firebas
 
 class MessageMapper @Inject()(gmailClient: GmailClient) {
   def getThreadBundles(email: Email): Future[List[ThreadBundle]] = {
-    val query = MessageService.allConnectusMessages
+    val query = MessageService.allMessages
     gmailClient.listThreads(email, query).flatMap { threads =>
       val messages = threads.map(thread =>
         gmailClient

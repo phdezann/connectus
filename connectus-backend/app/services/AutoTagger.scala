@@ -23,7 +23,7 @@ class AutoTagger @Inject()(gmailClient: GmailClient, messageService: MessageServ
         _ <- removeTags
         _ <- messageService.tagInbox(email)
       } yield ()
-      action.onComplete { case _ => Logger.info(s"Messages successfully re-labelled for $email after contacts modification") }
+      action.onSuccess { case _ => Logger.info(s"Messages successfully re-labelled for $email after contacts modification") }
       action.onFailure { case e => Logger.error(s"Error while re-labelling messages for $email after contacts modification", e) }
       action
     })
@@ -33,7 +33,7 @@ class AutoTagger @Inject()(gmailClient: GmailClient, messageService: MessageServ
     fs(labels.filter(_.getName.startsWith(MessageService.ConnectusLabelName)))
 
   private def removeAll(email: String, labels: List[Label]) = {
-    val ops = labels.map(label => gmailClient.removeLabel(email, MessageService.allMessagesLabel, label))
+    val ops = labels.map(label => gmailClient.removeLabel(email, MessageService.allMessages, label))
     Future.sequence(ops)
   }
 }

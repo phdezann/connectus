@@ -10,7 +10,7 @@ import com.google.inject.AbstractModule
 import controllers.AppController
 import play.api.libs.concurrent.AkkaGuiceSupport
 import services.support.SystemClock
-import services.{JobQueueActor, GmailWatcherActor, GoogleClientThrottlerActor, RepositoryDataStoreFactory}
+import services._
 
 class AppModule extends AbstractModule {
   def configure = {
@@ -24,7 +24,7 @@ class AppModule extends AbstractModule {
 class AkkaModule extends AbstractModule with AkkaGuiceSupport {
   def configure = {
     bindActor[GmailWatcherActor]("gmailWatcherActor")
-    bindActor[GoogleClientThrottlerActor]("googleClientThrottlerActor")
+    bindActor[GmailThrottlerActor](GmailRequests.actorName)
     bindActor[JobQueueActor]("futureJobQueueActor")
   }
 }
