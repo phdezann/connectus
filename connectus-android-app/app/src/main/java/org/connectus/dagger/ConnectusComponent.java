@@ -12,4 +12,6 @@ public interface ConnectusComponent {
     void inject(ResidentAddDialogFragment residentAddDialogFragment);
 
     void inject(ResidentThreadListActivity residentThreadListActivity);
+
+    void inject(ThreadActivity threadActivity);
 }

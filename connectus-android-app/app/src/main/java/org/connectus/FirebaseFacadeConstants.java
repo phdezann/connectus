@@ -48,6 +48,10 @@ public class FirebaseFacadeConstants {
         return String.format("%s/messages/%s/%s/inbox", getRootUrl(), encodedEmail, residentId);
     }
 
+    public static String getResidentMessagesOfThreadUrl(String encodedEmail, String residentId, String threadId) {
+        return String.format("%s/messages/%s/%s/threads/%s", getRootUrl(), encodedEmail, residentId, threadId);
+    }
+
     public static String getResidentsUrl(String encodedEmail) {
         return String.format("%s/residents/%s", getRootUrl(), encodedEmail);
     }
