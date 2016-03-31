@@ -23,7 +23,7 @@ object GmailWatcherActor {
   case class StopWatchDone(email: Email, totalWatcherCount: Int)
 }
 
-class GmailWatcherActor @Inject()(clock: Clock, firebaseFacade: FirebaseFacade, gmailClient: GmailClient) extends Actor with akka.actor.ActorLogging {
+class GmailWatcherActor @Inject()(clock: Clock, firebaseFacade: FirebaseFacade, gmailClient: GmailClient) extends Actor with ActorLogging {
   implicit val executor = context.dispatcher
 
   var renews = Map[Email, Cancellable]()
@@ -52,6 +52,4 @@ class GmailWatcherActor @Inject()(clock: Clock, firebaseFacade: FirebaseFacade, 
       sender ! StopWatchDone
       Logger.info(s"StopWatch for $email")
   }
-
-  def scheduler = context.system.scheduler
 }

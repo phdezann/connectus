@@ -52,7 +52,7 @@ class MessageServiceTest extends FunSuiteLike with Mockito {
 
     when(gmailClient.listLabels(any)) thenReturn fs(List())
     when(gmailClient.createLabel(any, any)) thenReturn fs(new Label())
-    when(gmailClient.addLabel(any, any, any)) thenReturn fs(List())
+    when(gmailClient.addLabels(any, any, any)) thenReturn fs(List())
     when(gmailClient.listMessages(any, any)) thenReturn fs(List())
 
     val messageService = injector.instanceOf[MessageService]

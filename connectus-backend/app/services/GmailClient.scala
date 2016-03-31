@@ -7,7 +7,6 @@ import java.time.format.DateTimeParseException
 import javax.inject.{Inject, Singleton}
 
 import _root_.support.AppConf
-import akka.actor._
 import com.google.api.client.auth.oauth2._
 import com.google.api.client.auth.openidconnect.IdTokenResponse
 import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow.Builder
@@ -116,28 +115,28 @@ class GmailClient @Inject()(appConf: AppConf, googleAuthorization: GoogleAuthori
     gmailThrottlerClient.scheduleCreateLabel(request)
   }
 
-  def addLabel(userId: String, query: String, labelId: String): Future[List[Message]] =
+  def addLabels(userId: String, query: String, labelIds: List[String]): Future[List[Message]] =
     for {
       gmail <- getService(userId)
       partialMessages <- fetchMessages(gmail, query)
-      messages <- addLabel(gmail, partialMessages, labelId)
+      messages <- addLabels(gmail, partialMessages, labelIds)
     } yield messages
 
-  private def addLabel(gmail: Gmail, partialMessages: List[Message], labelId: String): Future[List[Message]] = {
-    val modifyMessageRequest = new ModifyMessageRequest().setAddLabelIds(List(labelId).asJava)
+  private def addLabels(gmail: Gmail, partialMessages: List[Message], labelIds: List[String]): Future[List[Message]] = {
+    val modifyMessageRequest = new ModifyMessageRequest().setAddLabelIds(labelIds.asJava)
     val requests = partialMessages.map(pm => gmail.users().messages().modify("me", pm.getId, modifyMessageRequest))
     seq[Gmail#Users#Messages#Modify, Message](requests, gmailThrottlerClient.scheduleModifyMessage(_))
   }
 
-  def removeLabel(userId: String, query: String, label: Label): Future[List[Message]] =
+  def removeLabels(userId: String, query: String, labels: List[Label]): Future[List[Message]] =
     for {
       gmail <- getService(userId)
       partialMessages <- fetchMessages(gmail, query)
-      messages <- removeLabel(gmail, partialMessages, label)
+      messages <- removeLabels(gmail, partialMessages, labels)
     } yield messages
 
-  private def removeLabel(gmail: Gmail, partialMessages: List[Message], label: Label): Future[List[Message]] = {
-    val modifyMessageRequest = new ModifyMessageRequest().setRemoveLabelIds(List(label.getId).asJava)
+  private def removeLabels(gmail: Gmail, partialMessages: List[Message], labels: List[Label]): Future[List[Message]] = {
+    val modifyMessageRequest = new ModifyMessageRequest().setRemoveLabelIds(labels.map(_.getId).asJava)
     val requests = partialMessages.map(pm => gmail.users().messages().modify("me", pm.getId, modifyMessageRequest))
     seq[Gmail#Users#Messages#Modify, Message](requests, gmailThrottlerClient.scheduleModifyMessage(_))
   }
@@ -181,7 +180,7 @@ class GmailClient @Inject()(appConf: AppConf, googleAuthorization: GoogleAuthori
     val messagesRequests = partialMessages.map(pm => gmail.users.messages.get("me", pm.getId))
     for {
       gmailMessages <- seq[Gmail#Users#Messages#Get, Message](messagesRequests, gmailThrottlerClient.scheduleGetMessage(_))
-      gmailLabels <- fetchLabels(gmail, gmailMessages)
+      gmailLabels <- listLabels(gmail)
       messages <- fs(Converter(gmailMessages, gmailLabels))
     } yield messages
   }
@@ -193,18 +192,11 @@ class GmailClient @Inject()(appConf: AppConf, googleAuthorization: GoogleAuthori
     }
   }
 
-  private def fetchLabels(gmail: Gmail, messages: List[Message]): Future[Map[String, Label]] = {
-    val labelIds = messages.foldLeft(Set[String]())((acc, message) => acc ++ message.getLabelIds.asScala.toSet)
-    val requests = labelIds.map(labelId => gmail.users.labels.get("me", labelId))
-    val results = seq[Gmail#Users#Labels#Get, Label](requests.toList, gmailThrottlerClient.scheduleGetLabel(_))
-    results.map(labels => labels.map { label => label.getId -> label }.toMap)
-  }
-
   object Converter {
 
-    def apply(messages: List[Message], labels: Map[String, Label]): List[GmailMessage] = messages.map(Converter(_, labels))
+    def apply(messages: List[Message], allLabels: List[Label]): List[GmailMessage] = messages.map(Converter(_, allLabels))
 
-    def apply(message: Message, labels: Map[String, Label]): GmailMessage = {
+    def apply(message: Message, allLabels: List[Label]): GmailMessage = {
       val headers = message.getPayload.getHeaders.asScala.toList
       val dateOpt = getHeader(headers, "Date").flatMap(parseDate(_))
       val fromOpt = getHeader(headers, "From").map(parseHeader(_))
@@ -212,9 +204,11 @@ class GmailClient @Inject()(appConf: AppConf, googleAuthorization: GoogleAuthori
       val subjectOpt = getHeader(headers, "Subject")
       val contentOpt = getContentAsText(message) map (_.trim)
       val historyId = new java.math.BigDecimal(message.getHistoryId)
-      val labelIds = message.getLabelIds.asScala.toList.map(labelId => toGmailLabels(labels, labelId)).flatten
+      val gmailLabels = message.getLabelIds.asScala.toList
+        .map(labelId => allLabels.find(_.getId() == labelId)).flatten
+        .map(label => GmailLabel(label.getId, label.getName))
       val complete = dateOpt.isDefined && fromOpt.isDefined && subjectOpt.isDefined && contentOpt.isDefined
-      GmailMessage(message.getId, dateOpt, fromOpt, toOpt, subjectOpt, contentOpt, historyId, labelIds, complete)
+      GmailMessage(message.getId, dateOpt, fromOpt, toOpt, subjectOpt, contentOpt, historyId, gmailLabels, complete)
     }
 
     def apply(threads: List[Thread]): List[GmailThread] = threads.map(Converter(_))
@@ -307,10 +301,5 @@ class GmailClient @Inject()(appConf: AppConf, googleAuthorization: GoogleAuthori
       // message.getPayload.getParts can be null
       Option(message.getPayload.getParts).fold[List[MessagePart]](List())(_.asScala.toList)
     }
-
-    def toGmailLabels(labels: Map[String, Label], labelId: String) =
-      labels
-        .find { case (id, label) => id == labelId }
-        .map { case (id, label) => GmailLabel(label.getId, label.getName) }
   }
 }

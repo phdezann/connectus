@@ -32,8 +32,6 @@ class AutoTagger @Inject()(gmailClient: GmailClient, messageService: MessageServ
   private def filterConnectusLabels(labels: List[Label]) =
     fs(labels.filter(_.getName.startsWith(MessageService.ConnectusLabelName)))
 
-  private def removeAll(email: String, labels: List[Label]) = {
-    val ops = labels.map(label => gmailClient.removeLabel(email, MessageService.allMessages, label))
-    Future.sequence(ops)
-  }
+  private def removeAll(email: String, labels: List[Label]) =
+    gmailClient.removeLabels(email, MessageService.allMessages, labels)
 }

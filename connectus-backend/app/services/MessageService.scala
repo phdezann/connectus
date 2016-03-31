@@ -41,7 +41,7 @@ class MessageService @Inject()(gmailClient: GmailClient, firebaseFacade: Firebas
   def tagInbox(email: Email) = {
     def initConnectusLabel: Future[GmailLabel] = getOrCreate(email, _.getName == MessageService.ConnectusLabelName, MessageService.ConnectusLabelName)
     def initLabel(resident: Resident): Future[GmailLabel] = getOrCreate(email, label => resident.labelId.fold(false)(labelId => label.getId == labelId), MessageService.toLabel(resident))
-    def addLabel(query: String, label: GmailLabel): Future[_] = gmailClient.addLabel(email, query, label.id)
+    def addLabel(query: String, label: GmailLabel): Future[_] = gmailClient.addLabels(email, query, List(label.id))
     def saveResidentLabelId(resident: Resident, label: GmailLabel): Future[Unit] = firebaseFacade.addResidentLabelId(email, resident.id, label.id)
     def initAllResidentLabels(residents: Map[Resident, List[Contact]]): Future[Map[Resident, GmailLabel]] = {
       val all = residents.map { case (resident, contacts) =>
