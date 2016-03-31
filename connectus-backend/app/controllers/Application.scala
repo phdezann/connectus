@@ -1,23 +1,20 @@
 package controllers
 
-import javax.inject.{Named, Inject}
+import javax.inject.Inject
 
 import _root_.support.AppConf
-import akka.actor.ActorRef
 import common._
 import model.{Notification, _}
 import org.apache.commons.codec.binary.StringUtils
 import play.api.Logger
-import play.api.inject.ApplicationLifecycle
 import play.api.libs.json.Json
 import play.api.mvc._
 import services._
 
-
 import scala.concurrent.ExecutionContext.Implicits.global
 
 /* services are injected here for emulating a lazy=false */
-class AppController @Inject()(applicationLifecycle: ApplicationLifecycle, appConf: AppConf, messageService: MessageService, accountInitializer: AccountInitializer, autoTagger: AutoTagger, @Named("gmailWatcherActor") gmailWatcherActor: ActorRef) extends Controller {
+class AppController @Inject()(appConf: AppConf, messageService: MessageService, accountInitializer: AccountInitializer, autoTagger: AutoTagger, jobQueueActorClient: JobQueueActorClient) extends Controller {
 
   def index = Action {
     Ok(views.html.index(null))
@@ -46,7 +43,7 @@ class AppController @Inject()(applicationLifecycle: ApplicationLifecycle, appCon
           }, gmailMessage => {
             val email = gmailMessage.emailAddress
             Logger.info(s"Initiating tagInbox for $email")
-            messageService.tagInbox(email).map(_ => Ok)
+            jobQueueActorClient.schedule(() => messageService.tagInbox(email)).map(_ => Ok)
           })
         })
     }
