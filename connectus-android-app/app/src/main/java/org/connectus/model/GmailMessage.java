@@ -28,4 +28,8 @@ public class GmailMessage {
     public Optional<Resident> getResidentOpt() {
         return Optional.fromNullable(resident);
     }
+
+    public boolean isSent() {
+        return labels.containsKey("SENT");
+    }
 }
