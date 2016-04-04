@@ -15,8 +15,6 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 
 object GmailRequests {
-  final val actorName = "gmailThrottlerActor"
-
   case class CreateLabelRequestMsg(request: () => Future[_], client: Option[ActorRef] = None)
   case class GetLabelRequestMsg(request: () => Future[_], client: Option[ActorRef] = None)
   case class ListLabelsRequestMsg(request: () => Future[_], client: Option[ActorRef] = None)
@@ -28,7 +26,7 @@ object GmailRequests {
   case class WatchRequestMsg(request: () => Future[_], client: Option[ActorRef] = None)
 }
 
-class GmailThrottlerClient @Inject()(@Named(actorName) googleClientThrottlerActor: ActorRef) {
+class GmailThrottlerClient @Inject()(@Named(GmailThrottlerActor.actorName) googleClientThrottlerActor: ActorRef) {
   implicit val timeout = Timeout(1 minute)
 
   import scala.concurrent.ExecutionContext.Implicits.global
@@ -55,6 +53,10 @@ object ThrottlerUtils {
     actor ! SetTarget(Some(context.actorOf(props)))
     actor
   }
+}
+
+object GmailThrottlerActor {
+  final val actorName = "gmailThrottlerActor"
 }
 
 class GmailThrottlerActor extends Actor with ActorLogging {

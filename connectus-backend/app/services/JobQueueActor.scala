@@ -1,28 +1,20 @@
 package services
 
 import java.time.LocalDateTime
-import javax.inject.{Inject, Named}
 
 import akka.actor.Status._
 import akka.actor.{Actor, ActorLogging, ActorRef, Props, Status}
-import akka.pattern.{ask, pipe}
-import akka.util.Timeout
-import services.JobQueueActor.{JobResult, QueuedJob, ScheduledJob}
+import akka.pattern.pipe
+import services.JobQueueActor.{Job, JobResult, QueuedJob}
 
 import scala.collection.immutable.Queue
 import scala.concurrent.Future
-import scala.concurrent.duration._
-
-class JobQueueActorClient @Inject()(@Named("futureJobQueueActor") futureJobQueueActor: ActorRef) {
-  implicit val timeout = Timeout(5 minutes)
-  def schedule(job: () => Future[_]) = futureJobQueueActor ? ScheduledJob(job)
-}
 
 object JobQueueActor {
-  case class ScheduledJob(job: () => Future[_])
+  final val actorName = "jobQueueActor"
+  case class Job(payload: () => Future[_])
   case class JobResult(status: Status, start: LocalDateTime, end: LocalDateTime)
-
-  case class QueuedJob(client: ActorRef, job: ScheduledJob)
+  case class QueuedJob(client: ActorRef, job: Job)
 }
 
 class JobQueueActor extends Actor with ActorLogging {
@@ -31,29 +23,35 @@ class JobQueueActor extends Actor with ActorLogging {
   override def receive: Receive = normal
 
   def normal: Receive = {
-    case scheduledJob@ScheduledJob(_) =>
-      context.actorOf(Props(new FutureExecutor(scheduledJob)))
+    case JobQueueActor.Job(job) =>
+      context.actorOf(Props(new FutureExecutor(job)))
       context.become(executing(sender))
   }
 
   def executing(client: ActorRef): Receive = {
-    case jobResult@JobResult(_, _, _) =>
+    case jobResult@JobResult(Success(result), _, _) =>
       client ! jobResult
-      pendingQueue.iterator.foreach(queuedJob => self.!(queuedJob.job)(queuedJob.client))
-      pendingQueue = Queue.empty[QueuedJob]
-      context.become(normal)
-    case scheduledJob@ScheduledJob(_) =>
+      resume(client)
+    case jobResult@JobResult(Failure(cause), _, _) =>
+      resume(client)
+    case scheduledJob@Job(_) =>
       pendingQueue = pendingQueue :+ QueuedJob(sender, scheduledJob)
+  }
+
+  private def resume(client: ActorRef) = {
+    pendingQueue.iterator.foreach(queuedJob => self.!(queuedJob.job)(queuedJob.client))
+    pendingQueue = Queue.empty[QueuedJob]
+    context.become(normal)
   }
 }
 
-class FutureExecutor(scheduledJob: ScheduledJob) extends Actor with ActorLogging {
+class FutureExecutor(payload: () => Future[_]) extends Actor with ActorLogging {
   def now = LocalDateTime.now()
 
   implicit val executor = context.dispatcher
   val start = now
 
-  pipe(scheduledJob.job()) to self
+  pipe(payload()) to self
 
   override def receive: Receive = {
     case Status.Failure(f) =>

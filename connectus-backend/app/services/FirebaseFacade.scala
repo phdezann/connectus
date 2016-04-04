@@ -6,9 +6,6 @@ import javax.inject.{Inject, Singleton}
 import _root_.support.AppConf
 import com.firebase.client.Firebase.{AuthResultHandler, CompletionListener}
 import com.firebase.client._
-import com.google.api.client.auth.oauth2.TokenResponseException
-import com.google.api.client.googleapis.auth.oauth2.GoogleTokenResponse
-import com.google.common.base.Throwables
 import common._
 import model.{Contact, GmailLabel, Resident}
 import play.api.Logger
@@ -18,6 +15,7 @@ import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Future, Promise}
 
+// to transfer to the repository
 object FirebaseFacade {
   val AuthorizationCodesPath = "authorization_codes"
   val AndroidIdPath = "android_id"
@@ -40,15 +38,13 @@ object FirebaseFacade {
   val LoginCodeInvalidGrant = "INVALID_GRANT"
   val LoginCodeFailure = "FAILURE"
 
-  case class AuthorizationCode(authorizationCodeId: String, androidId: String, authorizationCode: String, tradeCode: Option[String])
+  case class AuthorizationCodes(authorizationCodeId: String, androidId: String, authorizationCode: String, tradeCode: Option[String])
   case class UserCredential(refreshToken: String, accessToken: String, expirationTimeInMilliSeconds: Long)
   case class MessagesSnapshot(allThreadIds: Map[ThreadId, List[MessageId]] = Map(), messagesLabels: Map[MessageId, List[GmailLabel]] = Map())
 }
 
 @Singleton
 class FirebaseFacade @Inject()(appConf: AppConf) {
-
-  connect
 
   def connect = {
     new Firebase(appConf.getFirebaseUrl)
@@ -58,58 +54,22 @@ class FirebaseFacade @Inject()(appConf: AppConf) {
       })
   }
 
-  def listenAuthorizationCodes(listener: AuthorizationCode => Unit) = {
-    val ref = new Firebase(s"${appConf.getFirebaseUrl}/$AuthorizationCodesPath")
-    ref.addChildEventListener(new ChildEventListener {
-      override def onChildAdded(snapshot: DataSnapshot, previousChildName: String) = {
-        val providedAndroidId = snapshot.child(AndroidIdPath).getValue.asInstanceOf[String]
-        val authorizationCode = snapshot.child(AuthorizationCodePath).getValue.asInstanceOf[String]
-        val tradeCode = Option(snapshot.child(TradeLogPath).child(CodePath).getValue).asInstanceOf[Option[String]]
-        listener(AuthorizationCode(snapshot.getKey, providedAndroidId, authorizationCode, tradeCode))
+  // TODO: refactor this.
+  def listenChildEvent(url: String, onChildAddedCallback: DataSnapshot => Unit, onChildRemovedCallback: DataSnapshot => Unit = _ => (), onChildChangedCallback: DataSnapshot => Unit = _ => ()): Cancellable = {
+    val ref = new Firebase(url)
+
+    val listener: ChildEventListener = ref.addChildEventListener(new ChildEventListener {
+      override def onChildAdded(snapshot: DataSnapshot, previousChildName: String) = onChildAddedCallback(snapshot)
+      override def onChildRemoved(snapshot: DataSnapshot) = onChildRemovedCallback(snapshot)
+      override def onChildMoved(snapshot: DataSnapshot, previousChildName: String) = {}
+      override def onChildChanged(snapshot: DataSnapshot, previousChildName: String) = onChildChangedCallback(snapshot)
+      override def onCancelled(error: FirebaseError) = {}
+    })
+
+    new Cancellable {
+      def cancel = {
+        ref.removeEventListener(listener)
       }
-      override def onChildRemoved(snapshot: DataSnapshot) = {}
-      override def onChildMoved(snapshot: DataSnapshot, previousChildName: String) = {}
-      override def onChildChanged(snapshot: DataSnapshot, previousChildName: String) = {}
-      override def onCancelled(error: FirebaseError) = {}
-    })
-  }
-
-  def listenUsers(onAddListener: Email => Unit, onRemovedListener: Email => Unit) = {
-    def getUserEmail(snapshot: DataSnapshot) = Util.decode(snapshot.getKey)
-    val ref = new Firebase(s"${appConf.getFirebaseUrl}/$UsersPath")
-    ref.addChildEventListener(new ChildEventListener {
-      override def onChildAdded(snapshot: DataSnapshot, previousChildName: String) = onAddListener(getUserEmail(snapshot))
-      override def onChildRemoved(snapshot: DataSnapshot) = onRemovedListener(getUserEmail(snapshot))
-      override def onChildMoved(snapshot: DataSnapshot, previousChildName: String) = {}
-      override def onChildChanged(snapshot: DataSnapshot, previousChildName: String) = {}
-      override def onCancelled(error: FirebaseError) = {}
-    })
-  }
-
-  def initAccount(authorizationCodeId: String, email: Email, googleTokenResponse: GoogleTokenResponse) = {
-    def expirationTimeInMilliSeconds(expiresInSecondsFromNow: Long) = System.currentTimeMillis + expiresInSecondsFromNow * 1000
-    val encodedEmail = Util.encode(email)
-    val values: Map[String, AnyRef] = Map(
-      s"$AuthorizationCodesPath/$authorizationCodeId/$TradeLogPath/$CodePath" -> LoginCodeSuccess,
-      s"$UsersPath/$encodedEmail/$RefreshTokenPath" -> googleTokenResponse.getRefreshToken,
-      s"$UsersPath/$encodedEmail/$AccessTokenPath" -> googleTokenResponse.getAccessToken,
-      s"$UsersPath/$encodedEmail/$ExpirationTimeMilliSecondsPath" -> Long.box(expirationTimeInMilliSeconds(googleTokenResponse.getExpiresInSeconds)))
-    val ref = new Firebase(appConf.getFirebaseUrl)
-    FutureWrappers.updateChildrenFuture(ref, values.asJava)
-  }
-
-  def onTradeFailure(authorizationCodeId: String, e: Throwable) = {
-    val values: Map[String, AnyRef] = Map(
-      s"$AuthorizationCodesPath/$authorizationCodeId/$TradeLogPath/$CodePath" -> getCode(e),
-      s"$AuthorizationCodesPath/$authorizationCodeId/$TradeLogPath/$MessagePath" -> Throwables.getStackTraceAsString(e))
-    val ref = new Firebase(appConf.getFirebaseUrl)
-    FutureWrappers.updateChildrenFuture(ref, values.asJava)
-  }
-
-  def getCode(exception: Throwable) = {
-    exception match {
-      case tre: TokenResponseException if tre.getDetails.getError == "invalid_grant" => LoginCodeInvalidGrant
-      case _ => LoginCodeFailure
     }
   }
 
@@ -131,21 +91,6 @@ class FirebaseFacade @Inject()(appConf: AppConf) {
       val expirationTimeInMilliSeconds = Long.unbox(dataSnapshot.child(ExpirationTimeMilliSecondsPath).getValue)
       UserCredential(refreshToken, accessToken, expirationTimeInMilliSeconds)
     }
-  }
-
-  def listenContacts(listener: Email => Unit) = {
-    def notifyListeners(snapshot: DataSnapshot): Unit = {
-      val email = snapshot.getKey
-      listener(email)
-    }
-    val ref = new Firebase(s"${appConf.getFirebaseUrl}/$ContactsPath")
-    ref.addChildEventListener(new ChildEventListener {
-      override def onChildAdded(snapshot: DataSnapshot, previousChildName: String) = notifyListeners(snapshot)
-      override def onChildChanged(snapshot: DataSnapshot, previousChildName: String) = notifyListeners(snapshot)
-      override def onChildRemoved(snapshot: DataSnapshot) = {}
-      override def onChildMoved(snapshot: DataSnapshot, previousChildName: String) = {}
-      override def onCancelled(error: FirebaseError) = {}
-    })
   }
 
   def getMessagesSnapshot(email: Email): Future[MessagesSnapshot] = {

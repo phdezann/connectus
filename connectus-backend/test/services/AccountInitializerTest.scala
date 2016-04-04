@@ -8,6 +8,8 @@ import org.scalatest.FunSuiteLike
 import org.specs2.mock.Mockito
 import play.api.inject._
 import play.api.inject.guice.GuiceInjectorBuilder
+import services.AccountInitializer.TradeSuccess
+import services.FirebaseFacade.AuthorizationCodes
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
@@ -15,19 +17,19 @@ import scala.concurrent.{Await, Future}
 class AccountInitializerTest extends FunSuiteLike with Mockito {
 
   test("successful token acquisition") {
-    val resultFuture: Future[(Email, GoogleTokenResponse)] = testTrade(asString("account1-android-id"), asString("account1-google-id-token"))
-    val result: (Email, GoogleTokenResponse) = Await.result(resultFuture, Duration.Inf)
-    assert(result._1.endsWith("@gmail.com"))
+    val resultFuture: Future[TradeSuccess] = testTrade(asString("account1-android-id"), asString("account1-google-id-token"))
+    val result = Await.result(resultFuture, Duration.Inf)
+    assert(result.email.endsWith("@gmail.com"))
   }
 
   test("androidId check fails") {
-    val resultFuture: Future[(Email, GoogleTokenResponse)] = testTrade(asString("account2-android-id"), asString("account1-google-id-token"), webComponentClientId = "fake.apps.googleusercontent.com")
+    val resultFuture: Future[TradeSuccess] = testTrade(asString("account2-android-id"), asString("account1-google-id-token"), webComponentClientId = "fake.apps.googleusercontent.com")
     Await.ready(resultFuture, Duration.Inf)
     assert(resultFuture.value.get.failed.get.getMessage == "Credentials validation failed")
   }
 
   test("googleIdToken check fails") {
-    val resultFuture: Future[(Email, GoogleTokenResponse)] = testTrade(asString("account2-android-id"), asString("account1-google-id-token"))
+    val resultFuture: Future[TradeSuccess] = testTrade(asString("account2-android-id"), asString("account1-google-id-token"))
     Await.ready(resultFuture, Duration.Inf)
     assert(resultFuture.value.get.failed.get.getMessage == "Future.filter predicate is not satisfied")
   }
@@ -39,12 +41,9 @@ class AccountInitializerTest extends FunSuiteLike with Mockito {
     response.setExpiresInSeconds(3600l)
     response.setIdToken(googleIdToken)
 
-    val firebaseFacade = mock[FirebaseFacade]
     val googleIdTokenVerifier = mock[GoogleIdTokenVerifier]
     val googleAuthorization = mock[GoogleAuthorization]
     val appConf = mock[AppConf]
-    val messageService = mock[MessageService]
-    val jobQueueActorClient = mock[JobQueueActorClient]
 
     when(googleIdTokenVerifier.verify(any[GoogleIdToken])) thenReturn true
     when(appConf.getWebComponentClientId) thenReturn webComponentClientId
@@ -53,13 +52,10 @@ class AccountInitializerTest extends FunSuiteLike with Mockito {
 
     val injector = new GuiceInjectorBuilder()
       .overrides(bind[GoogleIdTokenVerifier].toInstance(googleIdTokenVerifier))
-      .overrides(bind[FirebaseFacade].toInstance(firebaseFacade))
-      .overrides(bind[AppConf].toInstance(appConf))
       .overrides(bind[GoogleAuthorization].toInstance(googleAuthorization))
-      .overrides(bind[MessageService].toInstance(messageService))
-      .overrides(bind[JobQueueActorClient].toInstance(jobQueueActorClient))
+      .overrides(bind[AppConf].toInstance(appConf))
       .build
 
-    injector.instanceOf[AccountInitializer].trade(androidId, "authorizationCode")
+    injector.instanceOf[AccountInitializer].trade(AuthorizationCodes("id", androidId, "authorizationCode", None))
   }
 }

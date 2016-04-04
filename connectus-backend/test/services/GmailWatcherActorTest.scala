@@ -47,9 +47,8 @@ class GmailWatcherActorTest extends FunSuiteLike with Mockito {
     val gmailWatcherActor = app.injector.instanceOf(BindingKey(classOf[ActorRef]).qualifiedWith("gmailWatcherActor"))
 
     Await.result(gmailWatcherActor ? StartWatch("me@gmail.com"), Duration.Inf) match {
-      case StartWatchDone(_, timeBeforeRenew, totalWatcherCount) =>
+      case StartWatchDone(_, timeBeforeRenew) =>
         assert(timeBeforeRenew == 3600)
-        assert(totalWatcherCount == 1)
       case _ => fail
     }
   }

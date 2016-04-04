@@ -13,8 +13,7 @@ import services._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-/* services are injected here for emulating a lazy=false */
-class AppController @Inject()(appConf: AppConf, messageService: MessageService, accountInitializer: AccountInitializer, autoTagger: AutoTagger, jobQueueActorClient: JobQueueActorClient) extends Controller {
+class AppController @Inject()(appConf: AppConf, messageService: MessageService, jobQueueActorClient: JobQueueActorClient, userActorInitializer: UserActorInitializer) extends Controller {
 
   def index = Action {
     Ok(views.html.index(null))
@@ -43,7 +42,7 @@ class AppController @Inject()(appConf: AppConf, messageService: MessageService, 
           }, gmailMessage => {
             val email = gmailMessage.emailAddress
             Logger.info(s"Initiating tagInbox for $email")
-            jobQueueActorClient.schedule(() => messageService.tagInbox(email)).map(_ => Ok)
+            jobQueueActorClient.schedule(email, messageService.tagInbox(email)).map(_ => Ok)
           })
         })
     }

@@ -23,8 +23,13 @@ class AppModule extends AbstractModule {
 
 class AkkaModule extends AbstractModule with AkkaGuiceSupport {
   def configure = {
-    bindActor[GmailWatcherActor]("gmailWatcherActor")
-    bindActor[GmailThrottlerActor](GmailRequests.actorName)
-    bindActor[JobQueueActor]("futureJobQueueActor")
+    bindActor[UserActor](UserActor.actorName)
+    bindActor[GmailWatcherActor](GmailWatcherActor.actorName)
+    bindActor[GmailThrottlerActor](GmailThrottlerActor.actorName)
+    bindActor[JobQueueActor](JobQueueActor.actorName)
+    bindActorFactory[ResidentListenerActor, ResidentListenerActor.Factory]
+    bindActorFactory[ContactListenerActor, ContactListenerActor.Factory]
+    bindActorFactory[ContactActor, ContactActor.Factory]
+    bindActorFactory[ResidentActor, ResidentActor.Factory]
   }
 }

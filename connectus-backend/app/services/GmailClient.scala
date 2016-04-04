@@ -40,7 +40,7 @@ class GoogleAuthorization @Inject()(appConf: AppConf, dataStoreFactory: Abstract
   def loadSecrets: GoogleClientSecrets =
     GoogleClientSecrets.load(Utils.factory, new StringReader(appConf.getGoogleClientSecret))
 
-  val flow: GoogleAuthorizationCodeFlow = new Builder(Utils.transport, Utils.factory, loadSecrets, Utils.Scopes) //
+  lazy val flow: GoogleAuthorizationCodeFlow = new Builder(Utils.transport, Utils.factory, loadSecrets, Utils.Scopes) //
     .setDataStoreFactory(dataStoreFactory)
     .setAccessType("offline") // So we can get a refresh and access the protected service while the user is gone
     .setApprovalPrompt("auto").build

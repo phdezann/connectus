@@ -22,20 +22,14 @@ class GmailThrottlerTest extends FunSuiteLike with Mockito with FutureTimeoutSup
     implicit val timeout = Timeout(5 seconds)
 
     val appConf = mock[AppConf]
-    val googleAuthorization = mock[GoogleAuthorization]
-    val gmailClient = mock[GmailClient]
-    val autoTagger = mock[AutoTagger]
+    val userActorInitializer = mock[UserActorInitializer]
 
-    val firebaseFacade = mock[FirebaseFacade]
     val injector = new GuiceApplicationBuilder()
-      .overrides(bind[GoogleAuthorization].toInstance(googleAuthorization))
       .overrides(bind[AppConf].toInstance(appConf))
-      .overrides(bind[GmailClient].toInstance(gmailClient))
-      .overrides(bind[AutoTagger].toInstance(autoTagger))
-      .overrides(bind[FirebaseFacade].toInstance(firebaseFacade))
+      .overrides(bind[UserActorInitializer].toInstance(userActorInitializer))
       .build.injector
 
-    val gmailClientThrottlerActor = injector.instanceOf(BindingKey(classOf[ActorRef]).qualifiedWith(GmailRequests.actorName))
+    val gmailClientThrottlerActor = injector.instanceOf(BindingKey(classOf[ActorRef]).qualifiedWith(GmailThrottlerActor.actorName))
 
     val f1 = gmailClientThrottlerActor ? ListLabelsRequestMsg(() => Future {LocalDateTime.now()})
     val f2 = gmailClientThrottlerActor ? ListLabelsRequestMsg(() => Future {LocalDateTime.now()})

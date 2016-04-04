@@ -9,7 +9,7 @@ import org.scalatest.FunSuiteLike
 import org.specs2.mock.Mockito
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.inject.{BindingKey, _}
-import services.JobQueueActor.{JobResult, ScheduledJob}
+import services.JobQueueActor.{JobResult, Job}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.{Duration, _}
@@ -30,7 +30,7 @@ class JobQueueActorTest extends FunSuiteLike with Mockito with FutureTimeoutSupp
       .overrides(bind[FirebaseFacade].toInstance(firebaseFacade))
       .build.injector
 
-    val futureJobQueueActor = injector.instanceOf(BindingKey(classOf[ActorRef]).qualifiedWith("futureJobQueueActor"))
+    val futureJobQueueActor = injector.instanceOf(BindingKey(classOf[ActorRef]).qualifiedWith(JobQueueActor.actorName))
     val actorSystem = injector.instanceOf(classOf[ActorSystem])
 
     def completeSoon = {
@@ -38,9 +38,9 @@ class JobQueueActorTest extends FunSuiteLike with Mockito with FutureTimeoutSupp
       after(delay, actorSystem.scheduler)(fs(()))
     }
 
-    val f1 = futureJobQueueActor ? ScheduledJob(() => completeSoon)
-    val f2 = futureJobQueueActor ? ScheduledJob(() => completeSoon)
-    val f3 = futureJobQueueActor ? ScheduledJob(() => completeSoon)
+    val f1 = futureJobQueueActor ? Job(() => completeSoon)
+    val f2 = futureJobQueueActor ? Job(() => completeSoon)
+    val f3 = futureJobQueueActor ? Job(() => completeSoon)
 
     val sequence = Future.sequence(List(f1, f2, f3))
     Await.result(sequence, Duration.Inf) match {
