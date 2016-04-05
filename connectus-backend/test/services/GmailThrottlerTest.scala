@@ -5,28 +5,26 @@ import java.time.temporal.ChronoUnit
 
 import _root_.support.AppConf
 import akka.actor.ActorRef
-import akka.pattern.{FutureTimeoutSupport, ask}
+import akka.pattern.ask
 import akka.util.Timeout
-import org.scalatest.FunSuiteLike
-import org.specs2.mock.Mockito
-import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.inject.{BindingKey, _}
 import services.GmailRequests._
+import services.support.TestBase
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.{Duration, _}
 import scala.concurrent.{Await, Future}
 
-class GmailThrottlerTest extends FunSuiteLike with Mockito with FutureTimeoutSupport {
+class GmailThrottlerTest extends TestBase {
   test("Throttle Gmail API calls") {
     implicit val timeout = Timeout(5 seconds)
 
     val appConf = mock[AppConf]
-    val userActorInitializer = mock[UserActorInitializer]
+    val userActorInitializer = mock[ActorsInitializer]
 
-    val injector = new GuiceApplicationBuilder()
+    val injector = getTestGuiceApplicationBuilder
       .overrides(bind[AppConf].toInstance(appConf))
-      .overrides(bind[UserActorInitializer].toInstance(userActorInitializer))
+      .overrides(bind[ActorsInitializer].toInstance(userActorInitializer))
       .build.injector
 
     val gmailClientThrottlerActor = injector.instanceOf(BindingKey(classOf[ActorRef]).qualifiedWith(GmailThrottlerActor.actorName))
@@ -37,7 +35,7 @@ class GmailThrottlerTest extends FunSuiteLike with Mockito with FutureTimeoutSup
 
     val sequence = Future.sequence(List(f1, f2, f3))
     Await.result(sequence, Duration.Inf) match {
-      case List(jr1: LocalDateTime, jr2: LocalDateTime, jr3: LocalDateTime) =>
+      case List(Some(jr1:LocalDateTime), Some(jr2:LocalDateTime), Some(jr3:LocalDateTime)) =>
         assert(jr1.isBefore(jr2))
         assert(jr2.isBefore(jr3))
         assert(jr1.until(jr2, ChronoUnit.SECONDS) == 1)

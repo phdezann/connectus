@@ -2,18 +2,12 @@ package services
 
 import java.io.File
 
-import com.firebase.client.Firebase.{AuthResultHandler, CompletionListener}
-import com.firebase.client.{AuthData, Firebase, FirebaseError}
 import com.google.api.client.util.store.{AbstractDataStoreFactory, FileDataStoreFactory}
-import model.GmailMessage
-import org.scalatest.FunSuite
 import play.api.inject._
 import play.api.inject.guice.GuiceApplicationBuilder
+import services.support.TestBase
 
-import scala.concurrent.Await
-import scala.concurrent.duration.Duration
-
-class GmailClientTest extends FunSuite {
+class GmailClientTest extends TestBase {
 
   ignore("draft") {
     val fileDataStoreFactory: FileDataStoreFactory = new FileDataStoreFactory(new File("/tmp/datastore"))

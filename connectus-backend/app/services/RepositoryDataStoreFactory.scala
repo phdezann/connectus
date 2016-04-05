@@ -12,20 +12,20 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
 import scala.language.postfixOps
 
-class RepositoryDataStoreFactory @Inject()(firebaseFacade: FirebaseFacade) extends SCRepositoryDataStoreFactory {
+class RepositoryDataStoreFactory @Inject()(repository: Repository) extends SCRepositoryDataStoreFactory {
   override def createStoredCredentialDataStore(id: String): DataStore[StoredCredential] = new SCDataStore(this, id) {
     // this method needs to be implemented when tokens are refreshed by Credential.refreshToken()
     override def set(key: String, value: StoredCredential): DataStore[StoredCredential] = {
       val credential = value.asInstanceOf[StoredCredential]
       val accessTokenOpt: Option[String] = Option(credential.getAccessToken)
       val millisecondsOpt: Option[Long] = Option(credential.getExpirationTimeMilliseconds).map(Long2long(_))
-      val res = firebaseFacade.updateAccessToken(key, accessTokenOpt, millisecondsOpt)
+      val res = repository.updateAccessToken(key, accessTokenOpt, millisecondsOpt)
       // it is safe to block here as we are already inside a blocking block
       Await.result(res, Duration.Inf)
       this
     }
     override def get(key: String): StoredCredential = {
-      val sc: Future[StoredCredential] = firebaseFacade.getCredentials(key).map(credentials => //
+      val sc: Future[StoredCredential] = repository.getCredentials(key).map(credentials => //
         new StoredCredential() //
           .setAccessToken(credentials.accessToken) //
           .setRefreshToken(credentials.refreshToken) //

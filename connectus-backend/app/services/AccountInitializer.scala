@@ -5,7 +5,7 @@ import javax.inject.{Inject, Singleton}
 import com.google.api.client.googleapis.auth.oauth2.{GoogleIdToken, GoogleTokenResponse}
 import common._
 import services.AccountInitializer.TradeSuccess
-import services.FirebaseFacade.AuthorizationCodes
+import services.Repository.AuthorizationCodes
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future

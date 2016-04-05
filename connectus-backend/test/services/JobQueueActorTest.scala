@@ -1,52 +1,44 @@
 package services
 
-import _root_.support.AppConf
+import java.time.LocalDateTime
+
 import akka.actor.{ActorRef, ActorSystem}
-import akka.pattern.{FutureTimeoutSupport, ask}
-import akka.util.Timeout
+import akka.pattern.ask
 import common._
-import org.scalatest.FunSuiteLike
-import org.specs2.mock.Mockito
-import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.inject.{BindingKey, _}
-import services.JobQueueActor.{JobResult, Job}
+import play.api.inject.BindingKey
+import services.JobQueueActor.Job
+import services.support.TestBase
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.{Duration, _}
 import scala.concurrent.{Await, Future}
+import scala.util.{Success, Try}
 
-class JobQueueActorTest extends FunSuiteLike with Mockito with FutureTimeoutSupport {
+class JobQueueActorTest extends TestBase {
   test("execute futures serially") {
-    implicit val timeout = Timeout(5 seconds)
+    implicit val timeout = Timeouts.oneMinute
 
-    val appConf = mock[AppConf]
-    val googleAuthorization = mock[GoogleAuthorization]
-    val gmailClient = mock[GmailClient]
-    val firebaseFacade = mock[FirebaseFacade]
-    val injector = new GuiceApplicationBuilder()
-      .overrides(bind[GoogleAuthorization].toInstance(googleAuthorization))
-      .overrides(bind[AppConf].toInstance(appConf))
-      .overrides(bind[GmailClient].toInstance(gmailClient))
-      .overrides(bind[FirebaseFacade].toInstance(firebaseFacade))
-      .build.injector
-
-    val futureJobQueueActor = injector.instanceOf(BindingKey(classOf[ActorRef]).qualifiedWith(JobQueueActor.actorName))
+    val injector = getTestGuiceApplicationBuilder.build.injector
+    val jobQueueActor = injector.instanceOf(BindingKey(classOf[ActorRef]).qualifiedWith(JobQueueActor.actorName))
     val actorSystem = injector.instanceOf(classOf[ActorSystem])
 
-    def completeSoon = {
+    def completeSoon: Future[LocalDateTime] = {
       val delay = 100.millis
-      after(delay, actorSystem.scheduler)(fs(()))
+      after(delay, actorSystem.scheduler)(fs(LocalDateTime.now()))
     }
 
-    val f1 = futureJobQueueActor ? Job(() => completeSoon)
-    val f2 = futureJobQueueActor ? Job(() => completeSoon)
-    val f3 = futureJobQueueActor ? Job(() => completeSoon)
-
-    val sequence = Future.sequence(List(f1, f2, f3))
+    case class JobResult(start: LocalDateTime, end: LocalDateTime)
+    def enqueueNewJob: Future[Any] = {
+      (jobQueueActor ? Job(() => completeSoon)).mapTo[Try[LocalDateTime]].map {
+        case Success(start) => JobResult(start, LocalDateTime.now())
+        case _ => ()
+      }
+    }
+    val sequence = Future.sequence(List(enqueueNewJob, enqueueNewJob, enqueueNewJob))
     Await.result(sequence, Duration.Inf) match {
       case List(jr1: JobResult, jr2: JobResult, jr3: JobResult) =>
-        assert(jr1.end.isBefore(jr2.start) || jr1.end.isEqual(jr2.start))
-        assert(jr2.end.isBefore(jr3.start) || jr2.end.isEqual(jr3.start))
+        assert(jr1.end.isBefore(jr2.end) || jr1.end.isEqual(jr2.end))
+        assert(jr2.end.isBefore(jr3.end) || jr2.end.isEqual(jr3.end))
       case e => fail
     }
   }

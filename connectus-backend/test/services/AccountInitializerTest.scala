@@ -4,17 +4,15 @@ import _root_.support.AppConf
 import com.google.api.client.googleapis.auth.oauth2.{GoogleIdToken, GoogleIdTokenVerifier, GoogleTokenResponse}
 import common._
 import org.mockito.Mockito._
-import org.scalatest.FunSuiteLike
-import org.specs2.mock.Mockito
 import play.api.inject._
-import play.api.inject.guice.GuiceInjectorBuilder
 import services.AccountInitializer.TradeSuccess
-import services.FirebaseFacade.AuthorizationCodes
+import services.Repository.AuthorizationCodes
+import services.support.TestBase
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
 
-class AccountInitializerTest extends FunSuiteLike with Mockito {
+class AccountInitializerTest extends TestBase {
 
   test("successful token acquisition") {
     val resultFuture: Future[TradeSuccess] = testTrade(asString("account1-android-id"), asString("account1-google-id-token"))
@@ -50,11 +48,11 @@ class AccountInitializerTest extends FunSuiteLike with Mockito {
     when(appConf.getAndroidAppComponentClientId) thenReturn "962110749658-f3rmklm7clp0jsokdf2mfi83s11sra2r.apps.googleusercontent.com"
     when(googleAuthorization.convert(any[String])) thenReturn fs(response)
 
-    val injector = new GuiceInjectorBuilder()
+    val injector = getTestGuiceApplicationBuilder
       .overrides(bind[GoogleIdTokenVerifier].toInstance(googleIdTokenVerifier))
       .overrides(bind[GoogleAuthorization].toInstance(googleAuthorization))
       .overrides(bind[AppConf].toInstance(appConf))
-      .build
+      .build.injector
 
     injector.instanceOf[AccountInitializer].trade(AuthorizationCodes("id", androidId, "authorizationCode", None))
   }

@@ -13,7 +13,7 @@ import services._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class AppController @Inject()(appConf: AppConf, messageService: MessageService, jobQueueActorClient: JobQueueActorClient, userActorInitializer: UserActorInitializer) extends Controller {
+class AppController @Inject()(appConf: AppConf, messageService: MessageService, jobQueueActorClient: JobQueueActorClient, userActorInitializer: ActorsInitializer) extends Controller {
 
   def index = Action {
     Ok(views.html.index(null))
@@ -42,7 +42,9 @@ class AppController @Inject()(appConf: AppConf, messageService: MessageService, 
           }, gmailMessage => {
             val email = gmailMessage.emailAddress
             Logger.info(s"Initiating tagInbox for $email")
-            jobQueueActorClient.schedule(email, messageService.tagInbox(email)).map(_ => Ok)
+            jobQueueActorClient.schedule(email, messageService.tagInbox(email))
+              .onSuccess { case result => Logger.info(s"Result of tagging inbox after gmail notification $result") }
+            fs(Ok)
           })
         })
     }
