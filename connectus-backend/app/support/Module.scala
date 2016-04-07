@@ -37,10 +37,12 @@ class AkkaModule extends AbstractModule with AkkaGuiceSupport {
     bindActor[GmailWatcherActor](GmailWatcherActor.actorName)
     bindActor[GmailThrottlerActor](GmailThrottlerActor.actorName)
     bindActor[JobQueueActor](JobQueueActor.actorName)
+    bindActor[ResidentActor](ResidentActor.actorName)
     bindActor[ContactActor](ContactActor.actorName)
+    bindActor[OutboxActor](OutboxActor.actorName)
     bindActorFactory[ResidentListenerActor, ResidentListenerActor.Factory]
     bindActorFactory[ContactListenerActor, ContactListenerActor.Factory]
-    bindActorFactory[ResidentActor, ResidentActor.Factory]
+    bindActorFactory[OutboxListenerActor, OutboxListenerActor.Factory]
   }
 }
 

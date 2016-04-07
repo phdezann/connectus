@@ -1,7 +1,10 @@
 package services
 
 import java.io._
+import java.util.Properties
 import javax.inject.{Inject, Singleton}
+import javax.mail.Session
+import javax.mail.internet.{InternetAddress, MimeMessage}
 
 import _root_.support.AppConf
 import com.google.api.client.auth.oauth2._
@@ -10,6 +13,7 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow.
 import com.google.api.client.googleapis.auth.oauth2._
 import com.google.api.client.http.javanet.NetHttpTransport
 import com.google.api.client.json.jackson2.JacksonFactory
+import com.google.api.client.util.Base64
 import com.google.api.client.util.store.AbstractDataStoreFactory
 import com.google.api.services.gmail.GmailScopes._
 import com.google.api.services.gmail.model._
@@ -115,12 +119,18 @@ class GmailClient @Inject()(appConf: AppConf, googleAuthorization: GoogleAuthori
     for {
       gmail <- getService(userId)
       partialMessages <- listMessages(userId, gmail, query)
-      messages <- addLabels(userId, gmail, partialMessages, labelIds)
+      messages <- addLabels(userId, gmail, partialMessages.map(_.getId), labelIds)
     } yield messages
 
-  private def addLabels(userId: String, gmail: Gmail, partialMessages: List[Message], labelIds: List[String]): Future[List[Message]] = {
+  def addLabels(userId: String, messageIds: List[String], labelIds: List[String]): Future[List[Message]] =
+    for {
+      gmail <- getService(userId)
+      messages <- addLabels(userId, gmail, messageIds, labelIds)
+    } yield messages
+
+  private def addLabels(userId: String, gmail: Gmail, messageIds: List[String], labelIds: List[String]): Future[List[Message]] = {
     val modifyMessageRequest = new ModifyMessageRequest().setAddLabelIds(labelIds.asJava)
-    val requests = partialMessages.map(pm => gmail.users().messages().modify("me", pm.getId, modifyMessageRequest))
+    val requests = messageIds.map(pm => gmail.users().messages().modify("me", pm, modifyMessageRequest))
     seq[Gmail#Users#Messages#Modify, Message](requests, gmailThrottlerClient.scheduleModifyMessage(userId, _))
   }
 
@@ -174,10 +184,47 @@ class GmailClient @Inject()(appConf: AppConf, googleAuthorization: GoogleAuthori
     seq[Gmail#Users#Messages#Get, Message](messagesRequests, gmailThrottlerClient.scheduleGetMessage(userId, _))
   }
 
+  private def getMessage(userId: String, gmail: Gmail, partialMessage: Message): Future[Message] = {
+    val request = gmail.users.messages.get("me", partialMessage.getId)
+    gmailThrottlerClient.scheduleGetMessage(userId, request)
+  }
+
   private def listMessages(userId: String, gmail: Gmail, query: String): Future[List[Message]] = {
     val request = gmail.users.messages.list("me").setQ(query)
     gmailThrottlerClient.scheduleListMessages(userId, request).map { response =>
       if (response.getResultSizeEstimate > 0) response.getMessages.asScala.toList else List()
     }
+  }
+
+  def reply(userId: String, threadId: String, toAddress: String, personal: String, content: String): Future[Message] =
+    for {
+      gmail <- getService(userId)
+      partialMessage <- reply(userId, gmail, threadId, toAddress, personal, content)
+      message <- getMessage(userId, gmail, partialMessage)
+    } yield message
+
+  private def reply(userId: String, gmail: Gmail, threadId: String, toAddress: String, personal: String, content: String): Future[Message] = {
+    val message = buildMessage(userId, threadId, toAddress, personal, content)
+    val request = gmail.users.messages.send("me", message)
+    gmailThrottlerClient.scheduleSendMessage(userId, request)
+  }
+
+  private def buildMessage(userId: String, threadId: String, toAddress: String, personal: String, content: String) = {
+    val props = new Properties
+    val session = Session.getDefaultInstance(props, null)
+    val email = new MimeMessage(session)
+
+    email.setFrom(new InternetAddress(userId, personal))
+    email.addRecipient(javax.mail.Message.RecipientType.TO, new InternetAddress(toAddress))
+    email.setText(content)
+
+    toMessage(email).setThreadId(threadId)
+  }
+
+  private def toMessage(message: MimeMessage): Message = {
+    val bytes: ByteArrayOutputStream = new ByteArrayOutputStream
+    message.writeTo(bytes)
+    val encodedEmail: String = Base64.encodeBase64URLSafeString(bytes.toByteArray)
+    new Message().setRaw(encodedEmail)
   }
 }

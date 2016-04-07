@@ -16,7 +16,7 @@
             android:id="@+id/logout"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Logout" />
+            android:text="@string/logout" />
 
         <TextView
             android:id="@+id/connected_user"

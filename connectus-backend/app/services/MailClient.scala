@@ -47,6 +47,13 @@ class MailClient @Inject()(gmailClient: GmailClient) {
 
   def watch(email: Email) =
     gmailClient.watch(email).map(response => WatchMapper(response))
+
+  def reply(email: Email, labels: List[GmailLabel], threadId: String, toAddress: String, personal: String, content: String) =
+    for {
+      allLabels <- gmailClient.listLabels(email)
+      message <- gmailClient.reply(email, threadId, toAddress, personal, content)
+      _ <- gmailClient.addLabels(email, List(message.getId), labels.map(_.id))
+    } yield ()
 }
 
 object WatchMapper {

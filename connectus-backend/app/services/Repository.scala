@@ -9,7 +9,7 @@ import com.firebase.client.{DataSnapshot, Firebase}
 import com.google.api.client.auth.oauth2.TokenResponseException
 import com.google.common.base.Throwables
 import common._
-import model.{Contact, GmailLabel, GmailMessage, InternetAddress, Resident, ThreadBundle}
+import model.{Contact, GmailLabel, GmailMessage, InternetAddress, OutboxMessage, Resident, ThreadBundle}
 import org.apache.commons.lang3.StringUtils
 import play.api.Logger
 import services.AccountInitializer.TradeSuccess
@@ -34,6 +34,7 @@ object FirebaseConstants {
   val UsersPath = "users"
   val ResidentsPath = "residents"
   val ContactsPath = "contacts"
+  val OutboxPath = "outbox"
   val ResidentIdProperty = "id"
   val ResidentNameProperty = "name"
   val ResidentLabelNameProperty = "labelName"
@@ -314,5 +315,20 @@ class RepositoryListeners @Inject()(firebaseFutureWrappers: FirebaseFutureWrappe
       }
     }
     firebaseFutureWrappers.listenChildEvent(contactUrl, callback, callback, callback)
+  }
+
+  def listenForOutboxMessages(email: Email, onMessageAdded: OutboxMessage => Unit): FirebaseCancellable = {
+    val url = s"${appConf.getFirebaseUrl}/${OutboxPath}/${Util.encode(email)}"
+    def callback: (DataSnapshot) => Unit = {
+      snapshot => {
+        val residentId = snapshot.child("residentId").getValue.asInstanceOf[String]
+        val threadId = snapshot.child("threadId").getValue.asInstanceOf[String]
+        val to = snapshot.child("to").getValue.asInstanceOf[String]
+        val personal = snapshot.child("personal").getValue.asInstanceOf[String]
+        val content = snapshot.child("content").getValue.asInstanceOf[String]
+        onMessageAdded(OutboxMessage(residentId, threadId, to, personal, content))
+      }
+    }
+    firebaseFutureWrappers.listenChildEvent(url, callback)
   }
 }

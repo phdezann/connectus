@@ -11,7 +11,6 @@
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:layout_gravity="right"
-        android:background="@color/aqua"
         android:orientation="vertical"
         android:showDividers="middle">
 
@@ -19,22 +18,19 @@
             android:id="@+id/from"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="right"
-            android:text="from2" />
+            android:layout_gravity="right" />
 
         <TextView
             android:id="@+id/date"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="right"
-            android:text="date2" />
+            android:layout_gravity="right" />
 
         <TextView
             android:id="@+id/content"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="right"
-            android:text="content2" />
+            android:layout_gravity="right" />
 
     </LinearLayout>
 </LinearLayout>

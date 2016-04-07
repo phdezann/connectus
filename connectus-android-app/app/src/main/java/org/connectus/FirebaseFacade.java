@@ -101,6 +101,20 @@ public class FirebaseFacade {
                 .map(ignore -> noOp());
     }
 
+    public Observable<NoOp> addOutboxMessage(String email, String residentId, String to, String threadId, String personal, String content) {
+        Firebase ref = new Firebase(FirebaseFacadeConstants.getOutboxUrl(email));
+
+        Map<String, Object> values = Maps.newHashMap();
+        values.put("residentId", residentId);
+        values.put("to", to);
+        values.put("threadId", threadId);
+        values.put("personal", personal);
+        values.put("content", content);
+
+        Firebase newOutboxMessage = ref.push();
+        return updateChildren(newOutboxMessage, values);
+    }
+
     private Observable<FirebaseFacade.TokenTradeReport> checkErrors(LoginOrchestrator.LoginCredentials creds, FirebaseFacade.TokenTradeReport tokenTradeReport) {
         if (StringUtils.equals(tokenTradeReport.code, FirebaseFacadeConstants.LOGIN_CODE_SUCCESS)) {
             return Observable.just(tokenTradeReport);

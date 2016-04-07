@@ -14,4 +14,7 @@
     <string name="on_logging_success">Successfully logged in</string>
     <string name="on_login_error">Login failed</string>
     <string name="no_resident_associated">No resident associated to this message yet</string>
+    <string name="new_resident">New resident</string>
+    <string name="send">Send</string>
+    <string name="logout">Logout</string>
 </resources>

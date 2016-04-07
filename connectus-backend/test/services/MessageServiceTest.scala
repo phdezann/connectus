@@ -48,7 +48,7 @@ class MessageServiceTest extends TestBase {
 
     when(mailClient.listLabels(any)) thenReturn fs(List())
     when(mailClient.createLabel(any, any)) thenReturn fs(new GmailLabel("id", LabelService.ConnectusLabelName))
-    when(mailClient.addLabels(any, any, any)) thenReturn fs(List())
+    when(mailClient.addLabels(any, any, any)) thenReturn fs(())
     when(mailClient.listMessages(any, any)) thenReturn fs(List())
 
     val messageService = injector.instanceOf[MessageService]

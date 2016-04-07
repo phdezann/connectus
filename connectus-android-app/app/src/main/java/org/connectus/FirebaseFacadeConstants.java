@@ -59,4 +59,8 @@ public class FirebaseFacadeConstants {
     public static String getContactsUrl(String encodedEmail) {
         return String.format("%s/contacts/%s", getRootUrl(), encodedEmail);
     }
+
+    public static String getOutboxUrl(String encodedEmail) {
+        return String.format("%s/outbox/%s", getRootUrl(), encodedEmail);
+    }
 }
