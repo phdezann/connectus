@@ -223,7 +223,7 @@ public class MainActivity extends Activity {
                 GmailThread thread = adapter.getItem(position);
                 ResidentListDialogFragment fragment = new ResidentListDialogFragment();
                 Bundle args = new Bundle();
-                args.putString(ResidentListDialogFragment.CONTACT_EMAIL_ARG, thread.getLastMessage().getFrom());
+                args.putString(ResidentListDialogFragment.CONTACT_EMAIL_ARG, thread.getContactEmailOpt().get());
                 args.putString(ResidentListDialogFragment.BOUND_RESIDENT_ID_ARG, thread.getLastMessage().getResidentOpt().transform(r -> r.getId()).orNull());
                 fragment.setArguments(args);
 

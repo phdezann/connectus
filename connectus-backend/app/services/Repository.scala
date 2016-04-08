@@ -182,10 +182,10 @@ class Repository @Inject()(firebaseFutureWrappers: FirebaseFutureWrappers, appCo
     val allDeletedMessageIds = findDeletedMessageIds(messagesSnapshot.allThreadIds, threadBundles)
     val values = threadBundles.flatMap { threadBundle =>
       val deletedMessageIds = allDeletedMessageIds.get(threadBundle.thread.id).fold[List[MessageId]](List())(identity)
-      def adminThreadValues = buildThreadValues(adminContainerPath(email), threadBundle, residentLabels, deletedMessageIds, messagesSnapshot.messagesLabels)
+      def adminThreadValues = buildThreadValues(email, adminContainerPath(email), threadBundle, residentLabels, deletedMessageIds, messagesSnapshot.messagesLabels)
       def buildResidentThreadValues =
         findResidentFromLabels(threadBundle.lastUntrashedMessage.get.labels, residentLabels).fold[Map[String, AnyRef]](Map())(resident => {
-          buildThreadValues(residentContainerPath(email, resident), threadBundle, residentLabels, deletedMessageIds, messagesSnapshot.messagesLabels)
+          buildThreadValues(email, residentContainerPath(email, resident), threadBundle, residentLabels, deletedMessageIds, messagesSnapshot.messagesLabels)
         })
       threadsDeletionValues ++ adminThreadValues ++ buildResidentThreadValues
     }.toMap
@@ -227,13 +227,13 @@ class Repository @Inject()(firebaseFutureWrappers: FirebaseFutureWrappers, appCo
       })
     }.toMap
 
-  private def buildThreadValues(containerPath: String, threadBundle: ThreadBundle, residentLabels: Map[Resident, GmailLabel], deletedMessageIds: List[MessageId], messagesLabels: Map[MessageId, List[GmailLabel]]): Map[String, AnyRef] = {
-    val inboxValues = buildInboxValues(s"$containerPath/inbox", threadBundle, residentLabels, messagesLabels)
+  private def buildThreadValues(email: Email, containerPath: String, threadBundle: ThreadBundle, residentLabels: Map[Resident, GmailLabel], deletedMessageIds: List[MessageId], messagesLabels: Map[MessageId, List[GmailLabel]]): Map[String, AnyRef] = {
+    val inboxValues = buildInboxValues(email, s"$containerPath/inbox", threadBundle, residentLabels, messagesLabels)
     val threadsValues = buildThreadsValues(s"$containerPath/threads", threadBundle, residentLabels, deletedMessageIds, messagesLabels)
     inboxValues ++ threadsValues
   }
 
-  private def buildInboxValues(inboxPath: String, threadBundle: ThreadBundle, residentLabels: Map[Resident, GmailLabel], messagesLabels: Map[MessageId, List[GmailLabel]]): Map[String, AnyRef] = {
+  private def buildInboxValues(email: Email, inboxPath: String, threadBundle: ThreadBundle, residentLabels: Map[Resident, GmailLabel], messagesLabels: Map[MessageId, List[GmailLabel]]): Map[String, AnyRef] = {
     val threadSummaryPath = s"$inboxPath/${threadBundle.thread.id}"
     val threadSummaryInfoValues = Map[String, AnyRef](
       s"$threadSummaryPath/id" -> threadBundle.thread.id,
@@ -241,7 +241,10 @@ class Repository @Inject()(firebaseFutureWrappers: FirebaseFutureWrappers, appCo
     val lastMessagePath = s"$threadSummaryPath/lastMessage"
     val threadLastMessageValues = threadBundle.lastUntrashedMessage.fold[Map[String, AnyRef]](
       Map(lastMessagePath -> null))(lastMessage => buildMessageValues(lastMessagePath, lastMessage, residentLabels, messagesLabels))
-    threadSummaryInfoValues ++ threadLastMessageValues
+    val contactEmailsPath = s"$threadSummaryPath/contactEmail"
+    val contactEmailsValues = threadBundle.contactEmail(email).headOption.fold[Map[String, AnyRef]](
+      Map(contactEmailsPath -> null))(contactEmail => Map(contactEmailsPath -> contactEmail))
+    threadSummaryInfoValues ++ threadLastMessageValues ++ contactEmailsValues
   }
 
   private def buildThreadsValues(threadsPath: String, threadBundle: ThreadBundle, residentLabels: Map[Resident, GmailLabel], deletedMessageIds: List[MessageId], messagesLabels: Map[MessageId, List[GmailLabel]]): Map[String, AnyRef] = {
