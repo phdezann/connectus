@@ -1,5 +1,7 @@
 package services
 
+import javax.inject.Inject
+
 import com.firebase.client.Firebase.{AuthResultHandler, CompletionListener}
 import com.firebase.client.{Firebase, _}
 
@@ -10,7 +12,7 @@ trait FirebaseCancellable {
   def cancel: Unit
 }
 
-class FirebaseFutureWrappers {
+class FirebaseFutureWrappers @Inject()(environmentHelper: EnvironmentHelper) {
 
   def connect(url: String, jwtToken: String) = {
     val promise = Promise[AuthData]
@@ -62,8 +64,8 @@ class FirebaseFutureWrappers {
     val ref = new Firebase(url)
 
     val listener: ChildEventListener = ref.addChildEventListener(new ChildEventListener {
-      override def onChildAdded(snapshot: DataSnapshot, previousChildName: String) = onChildAddedCallback(snapshot)
-      override def onChildRemoved(snapshot: DataSnapshot) = onChildRemovedCallback(snapshot)
+      override def onChildAdded(snapshot: DataSnapshot, previousChildName: String) = if (environmentHelper.listenersEnabled) onChildAddedCallback(snapshot)
+      override def onChildRemoved(snapshot: DataSnapshot) = if (environmentHelper.listenersEnabled) onChildRemovedCallback(snapshot)
       override def onChildMoved(snapshot: DataSnapshot, previousChildName: String) = {}
       override def onChildChanged(snapshot: DataSnapshot, previousChildName: String) = onChildChangedCallback(snapshot)
       override def onCancelled(error: FirebaseError) = {}
