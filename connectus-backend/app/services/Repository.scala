@@ -2,7 +2,7 @@ package services
 
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 
 import _root_.support.AppConf
 import com.firebase.client.{DataSnapshot, Firebase}
@@ -61,6 +61,7 @@ object Repository {
   case class MessagesSnapshot(allThreadIds: Map[ThreadId, List[MessageId]] = Map(), messagesLabels: Map[MessageId, List[GmailLabel]] = Map())
 }
 
+@Singleton
 class Repository @Inject()(firebaseFutureWrappers: FirebaseFutureWrappers, appConf: AppConf) {
 
   def connect = firebaseFutureWrappers.connect(appConf.getFirebaseUrl, appConf.getFirebaseJwtToken)
@@ -280,6 +281,7 @@ class Repository @Inject()(firebaseFutureWrappers: FirebaseFutureWrappers, appCo
   }
 }
 
+@Singleton
 class RepositoryListeners @Inject()(firebaseFutureWrappers: FirebaseFutureWrappers, appConf: AppConf) {
 
   def listenForUsers(onUserAdded: Email => Unit, onUserRemoved: Email => Unit): FirebaseCancellable = {

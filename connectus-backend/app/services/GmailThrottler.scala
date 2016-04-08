@@ -1,6 +1,6 @@
 package services
 
-import javax.inject.{Inject, Named}
+import javax.inject.{Inject, Named, Singleton}
 
 import akka.actor.{Actor, ActorRef, Props, _}
 import akka.contrib.throttle.Throttler.{SetTarget, _}
@@ -29,6 +29,7 @@ object GmailRequests {
   case class WatchRequestMsg(request: () => Future[_], client: Option[ActorRef] = None)
 }
 
+@Singleton
 class GmailThrottlerClient @Inject()(@Named(GmailThrottlerActor.actorName) googleClientThrottlerActor: ActorRef, userActorClient: UserActorClient) {
   implicit val timeout = Timeouts.oneMinute
 

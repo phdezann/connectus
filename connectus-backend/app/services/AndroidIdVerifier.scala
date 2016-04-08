@@ -1,6 +1,6 @@
 package services
 
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 
 import _root_.support.AppConf
 import com.google.api.client.googleapis.auth.oauth2.{GoogleIdToken, GoogleIdTokenVerifier}
@@ -12,6 +12,7 @@ import scala.util.Try
 /**
  * https://developers.google.com/identity/protocols/CrossClientAuth
  */
+@Singleton
 class AndroidIdVerifier @Inject()(appConf: AppConf, googleIdTokenVerifier: GoogleIdTokenVerifier) {
 
   private val factory = new JacksonFactory

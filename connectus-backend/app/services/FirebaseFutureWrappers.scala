@@ -1,6 +1,6 @@
 package services
 
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 
 import com.firebase.client.Firebase.{AuthResultHandler, CompletionListener}
 import com.firebase.client.{Firebase, _}
@@ -12,6 +12,7 @@ trait FirebaseCancellable {
   def cancel: Unit
 }
 
+@Singleton
 class FirebaseFutureWrappers @Inject()(environmentHelper: EnvironmentHelper) {
 
   def connect(url: String, jwtToken: String) = {

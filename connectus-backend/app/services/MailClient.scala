@@ -3,7 +3,7 @@ package services
 import java.nio.charset.Charset
 import java.time.{Instant, LocalDateTime, ZoneOffset, ZonedDateTime}
 import java.time.format.DateTimeParseException
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 
 import com.google.api.services.gmail.model._
 import common._
@@ -14,6 +14,7 @@ import scala.collection.JavaConverters._
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
+@Singleton
 class MailClient @Inject()(gmailClient: GmailClient) {
 
   def listLabels(email: Email): Future[List[GmailLabel]] = {
