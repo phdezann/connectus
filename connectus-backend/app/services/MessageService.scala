@@ -30,6 +30,7 @@ class MessageService @Inject()(mailClient: MailClient, labelService: LabelServic
         }
 
     def doTagInbox(newHistoryId: BigInt): Future[Unit] = for {
+      _ <- labelService.removeAll(email)
       connectusLabel <- labelService.getOrCreateConnectusLabel(email)
       residentsLabels <- labelService.syncResidentLabels(email)
       _ <- doLabelMessages(connectusLabel, residentsLabels)

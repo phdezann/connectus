@@ -16,7 +16,7 @@ object LabelService {
     s"label:$InboxLabelName"
 
   def residentUntaggedMessages(contacts: List[Contact]) =
-    s"label:$InboxLabelName -label:$ConnectusLabelName ${buildContactQuery(contacts)}"
+    s"label:$InboxLabelName ${buildContactQuery(contacts)}"
 
   private def buildContactQuery(contacts: List[Contact]) =
     if (contacts.isEmpty) {
@@ -92,21 +92,24 @@ class LabelService @Inject()(mailClient: MailClient, repository: Repository) {
     }
   }
 
-  def removeDanglingLabels(email: Email, residents: Map[Resident, GmailLabel]) = {
-    def deleteLabels(labels: List[GmailLabel]) = {
-      val all = labels.map(label => mailClient.deleteLabel(email, label))
-      Future.sequence(all)
-    }
+  def deleteLabels(email: Email, labels: List[GmailLabel]) = {
+    val all = labels.map(label => mailClient.deleteLabel(email, label))
+    Future.sequence(all)
+  }
+
+  def removeDanglingLabels(email: Email, residents: Map[Resident, GmailLabel]) =
     for {
       labels <- listConnectusSubLabels(email)
       danglingLabels = labels.filter(label => !residents.keys.exists(_.labelId == Some(label.id)))
-      _ <- deleteLabels(danglingLabels)
+      _ <- deleteLabels(email, danglingLabels)
     } yield residents
-  }
 
   private def listAllLabels(email: Email) =
     mailClient.listLabels(email)
 
-  private def listConnectusSubLabels(email: Email) =
+  private def listConnectusSubLabels(email: Email): Future[List[GmailLabel]] =
     listAllLabels(email).map(_.filter(_.name.startsWith(LabelService.getSubLabelNamePrefix)))
+
+  def removeAll(email: Email) =
+    listConnectusSubLabels(email).flatMap(labels => deleteLabels(email, labels))
 }
