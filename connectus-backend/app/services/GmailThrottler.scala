@@ -39,7 +39,7 @@ class GmailThrottlerClient @Inject()(@Named(GmailThrottlerActor.actorName) googl
     def execute[T](request: => GmailRequest[T]) = () => Future {concurrent.blocking {request.execute}}
     userActorClient.getGmailThrottlerActor(email).flatMap { actorOpt =>
       if (actorOpt.isDefined) {
-        (actorOpt.get ? msgBuilder(execute(request), None)).asInstanceOf[Future[Option[T]]]
+        (actorOpt.get ? msgBuilder(execute(request), None)).mapTo[Option[T]]
       } else {
         execute(request)().map(Option(_))
       }

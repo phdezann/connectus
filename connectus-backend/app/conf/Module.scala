@@ -23,12 +23,6 @@ class AppModule extends AbstractModule {
     bind(classOf[GoogleIdTokenVerifier]).toInstance(new GoogleIdTokenVerifier.Builder(new NetHttpTransport, new JacksonFactory).build)
     bind(classOf[Clock]).toInstance(new SystemClock(ZoneId.systemDefault()))
   }
-
-  def bindActorFactory[A: ClassTag, FactoryClass: ClassTag]: Unit = {
-    install(new FactoryModuleBuilder()
-      .implement(classOf[Actor], implicitly[ClassTag[A]].runtimeClass.asInstanceOf[Class[_ <: Actor]])
-      .build(implicitly[ClassTag[FactoryClass]].runtimeClass))
-  }
 }
 
 class AkkaModule extends AbstractModule with AkkaGuiceSupport {
