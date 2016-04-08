@@ -29,6 +29,9 @@ class MessageService @Inject()(mailClient: MailClient, labelService: LabelServic
           Future.sequence(all)
         }
 
+    def removeTrashedMessages(threadBundles: List[ThreadBundle]): List[ThreadBundle] =
+      threadBundles.map(threadBundle => threadBundle.copy(messages = threadBundle.messages.filter(!_.labels.contains(LabelService.TrashedLabelName))))
+
     def doTagInbox(newHistoryId: BigInt): Future[Unit] = for {
       allLabels <- labelService.listAllLabels(email)
       _ <- labelService.untagAll(email, allLabels)
@@ -36,8 +39,9 @@ class MessageService @Inject()(mailClient: MailClient, labelService: LabelServic
       residentsLabels <- labelService.syncResidentLabels(email, allLabels)
       _ <- doLabelMessages(connectusLabel, residentsLabels)
       threadBundles <- getThreadBundles(email, allLabels)
+      filteredThreadBundles = removeTrashedMessages(threadBundles)
       messagesSnapshot <- repository.getMessagesSnapshot(email)
-      _ <- repository.saveThreads(email, threadBundles, messagesSnapshot, residentsLabels)
+      _ <- repository.saveThreads(email, filteredThreadBundles, messagesSnapshot, residentsLabels)
     } yield {
       historyIdOpt = Some(newHistoryId)
     }

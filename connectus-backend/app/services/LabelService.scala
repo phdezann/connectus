@@ -11,6 +11,7 @@ object LabelService {
   val InboxLabelName = "inbox"
   val ConnectusLabelName = "connectus"
   val AbsentLabelName = "query-returns-nothing"
+  val TrashedLabelName = "trashed"
 
   def allMessages =
     s"label:$InboxLabelName"
