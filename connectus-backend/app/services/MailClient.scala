@@ -52,9 +52,9 @@ class MailClient @Inject()(gmailClient: GmailClient) {
     gmailClient.listMessagesOfThread(email, threadId).map(_.map(message => MessageMapper(message, allLabels)))
   }
 
-  def watch(email: Email) = {
+  def watch(email: Email, labelIds: List[String]) = {
     Logger.info(s"watch for ${email}")
-    gmailClient.watch(email).map(response => WatchMapper(response))
+    gmailClient.watch(email, labelIds).map(response => WatchMapper(response))
   }
 
   def reply(email: Email, threadId: String, toAddress: String, personal: String, subject: String, content: String, allLabels: List[GmailLabel]) = {

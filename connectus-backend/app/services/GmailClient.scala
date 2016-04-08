@@ -10,6 +10,7 @@ import conf.AppConf
 import com.google.api.client.util.Base64
 import com.google.api.services.gmail.model._
 import com.google.api.services.gmail.{Gmail, GmailRequest}
+import model.GmailLabel
 
 import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -24,15 +25,15 @@ class GmailClient @Inject()(appConf: AppConf, googleAuthorization: GoogleAuthori
     Future.sequence(results)
   }
 
-  def watch(userId: String): Future[WatchResponse] = {
+  def watch(userId: String, labelIds: List[String]): Future[WatchResponse] = {
     for {
       gmail <- googleAuthorization.getService(userId)
-      watchResponse <- callWatch(userId, gmail)
+      watchResponse <- callWatch(userId, gmail, labelIds)
     } yield watchResponse
   }
 
-  private def callWatch(userId: String, gmail: Gmail): Future[WatchResponse] = {
-    val request = gmail.users.watch("me", new WatchRequest().setTopicName(appConf.getGmailTopic))
+  private def callWatch(userId: String, gmail: Gmail, labelIds: List[String]): Future[WatchResponse] = {
+    val request = gmail.users.watch("me", new WatchRequest().setTopicName(appConf.getGmailTopic).setLabelIds(labelIds.asJava))
     gmailThrottlerClient.scheduleWatch(userId, request)
   }
 

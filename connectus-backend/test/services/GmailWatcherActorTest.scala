@@ -33,7 +33,7 @@ class GmailWatcherActorTest extends TestBase {
     wr.setExpiration(expirationTimeInMillis)
     wr.setHistoryId(BigInt(42).bigInteger)
 
-    when(gmailClient.watch(any)) thenReturn fs((wr))
+    when(gmailClient.watch(any, any)) thenReturn fs((wr))
     val gmailWatcherActor = app.injector.instanceOf(BindingKey(classOf[ActorRef]).qualifiedWith(GmailWatcherActor.actorName))
 
     Await.result(gmailWatcherActor ? StartWatch("me@gmail.com"), Duration.Inf) match {

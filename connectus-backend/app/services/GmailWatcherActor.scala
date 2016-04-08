@@ -34,7 +34,7 @@ class GmailWatcherActor @Inject()(clock: Clock, mailClient: MailClient) extends 
     case StartWatch(email) =>
       Logger.info(s"StartWatch for $email")
       val s = sender
-      pipe(mailClient.watch(email).map(WatchResponsePacket(email, _, s))) to self
+      pipe(mailClient.watch(email, List(LabelService.InboxLabelName)).map(WatchResponsePacket(email, _, s))) to self
     case WatchResponsePacket(email, gmailWatchReply, client) =>
       val now = LocalDateTime.now(clock)
       val timeBeforeRenew = now.until(gmailWatchReply.expirationDate, ChronoUnit.SECONDS)
