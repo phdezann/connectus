@@ -101,7 +101,7 @@ public class FirebaseFacade {
                 .map(ignore -> noOp());
     }
 
-    public Observable<NoOp> addOutboxMessage(String email, String residentId, String to, String threadId, String personal, String content) {
+    public Observable<NoOp> addOutboxMessage(String email, String residentId, String to, String threadId, String personal, String subject, String content) {
         Firebase ref = new Firebase(FirebaseFacadeConstants.getOutboxUrl(email));
 
         Map<String, Object> values = Maps.newHashMap();
@@ -109,6 +109,7 @@ public class FirebaseFacade {
         values.put("to", to);
         values.put("threadId", threadId);
         values.put("personal", personal);
+        values.put("subject", subject);
         values.put("content", content);
 
         Firebase newOutboxMessage = ref.push();

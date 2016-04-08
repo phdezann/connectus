@@ -90,7 +90,7 @@ class MessageService @Inject()(mailClient: MailClient, labelService: LabelServic
   def reply(email: Email, outboxMessage: OutboxMessage): Future[Unit] =
     for {
       allLabels <- labelService.listAllLabels(email)
-      _ <- mailClient.reply(email, outboxMessage.threadId, outboxMessage.to, outboxMessage.personal, outboxMessage.content, allLabels)
+      _ <- mailClient.reply(email, outboxMessage.threadId, outboxMessage.to, outboxMessage.personal, outboxMessage.subject, outboxMessage.content, allLabels)
       _ <- repository.deleteOutboxMessage(email, outboxMessage.id)
       _ <- tagInbox(email)
     } yield ()

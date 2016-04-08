@@ -20,4 +20,4 @@ case class GmailNotificationMessage(historyId: Long, emailAddress: String)
 
 case class Resident(id: String, name: String, labelName: String, labelId: Option[String])
 case class Contact(email: Email, residentId: String)
-case class OutboxMessage(id:String, residentId: String, threadId: String, to: String, personal: String, content: String)
+case class OutboxMessage(id: String, residentId: String, threadId: String, to: String, personal: String, subject: String, content: String)

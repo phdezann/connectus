@@ -203,24 +203,26 @@ class GmailClient @Inject()(appConf: AppConf, googleAuthorization: GoogleAuthori
     }
   }
 
-  def reply(userId: String, threadId: String, toAddress: String, personal: String, content: String): Future[Message] =
+  def reply(userId: String, threadId: String, toAddress: String, personal: String, subject: String, content: String): Future[Message] =
     for {
       gmail <- getService(userId)
-      partialMessage <- reply(userId, gmail, threadId, toAddress, personal, content)
+      partialMessage <- reply(userId, gmail, threadId, toAddress, personal, subject, content)
       message <- getMessage(userId, gmail, partialMessage)
     } yield message
 
-  private def reply(userId: String, gmail: Gmail, threadId: String, toAddress: String, personal: String, content: String): Future[Message] = {
-    val message = buildMessage(userId, threadId, toAddress, personal, content)
+  private def reply(userId: String, gmail: Gmail, threadId: String, toAddress: String, personal: String, subject: String, content: String): Future[Message] = {
+    val message = buildMessage(userId, threadId, toAddress, personal, subject, content)
     val request = gmail.users.messages.send("me", message)
     gmailThrottlerClient.scheduleSendMessage(userId, request)
   }
 
-  private def buildMessage(userId: String, threadId: String, toAddress: String, personal: String, content: String) = {
+  private def buildMessage(userId: String, threadId: String, toAddress: String, personal: String, subject: String, content: String) = {
     val props = new Properties
     val session = Session.getDefaultInstance(props, null)
     val email = new MimeMessage(session)
 
+    email.addHeader("Subject", subject)
+    email.setSubject("Re: " + subject)
     email.setFrom(new InternetAddress(userId, personal))
     email.addRecipient(javax.mail.Message.RecipientType.TO, new InternetAddress(toAddress))
     email.setText(content)

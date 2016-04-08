@@ -331,8 +331,9 @@ class RepositoryListeners @Inject()(firebaseFutureWrappers: FirebaseFutureWrappe
         val threadId = snapshot.child("threadId").getValue.asInstanceOf[String]
         val to = snapshot.child("to").getValue.asInstanceOf[String]
         val personal = snapshot.child("personal").getValue.asInstanceOf[String]
+        val subject = snapshot.child("subject").getValue.asInstanceOf[String]
         val content = snapshot.child("content").getValue.asInstanceOf[String]
-        onMessageAdded(OutboxMessage(id, residentId, threadId, to, personal, content))
+        onMessageAdded(OutboxMessage(id, residentId, threadId, to, personal, subject, content))
       }
     }
     firebaseFutureWrappers.listenChildEvent(url, callback)

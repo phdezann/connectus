@@ -56,9 +56,9 @@ class MailClient @Inject()(gmailClient: GmailClient) {
     gmailClient.watch(email).map(response => WatchMapper(response))
   }
 
-  def reply(email: Email, threadId: String, toAddress: String, personal: String, content: String, allLabels: List[GmailLabel]) = {
+  def reply(email: Email, threadId: String, toAddress: String, personal: String, subject: String, content: String, allLabels: List[GmailLabel]) = {
     Logger.info(s"Reply to address ${toAddress} and threadId ${threadId} for ${email}")
-    gmailClient.reply(email, threadId, toAddress, personal, content)
+    gmailClient.reply(email, threadId, toAddress, personal, subject, content)
   }
 
   def getLastHistoryId(email: Email, startHistoryId: BigInt): Future[BigInt] = {

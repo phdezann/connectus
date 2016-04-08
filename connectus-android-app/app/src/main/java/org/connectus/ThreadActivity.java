@@ -61,11 +61,12 @@ public class ThreadActivity extends Activity {
         sendButton.setOnClickListener(view -> {
             String to = inboundMessage.get().getFrom();
             GmailMessage item = adapter.getItem(0);
+            String subject = item.getSubject();
             String content = messageEditText.getText().toString();
             String personal = item.getResidentOpt().transform(r -> r.getName()).or("");
 
             // TODO add to future activityBase
-            firebaseFacade.addOutboxMessage(FirebaseFacade.encode(userRepository.getUserEmail()), residentId, to, threadId, personal, content) //
+            firebaseFacade.addOutboxMessage(FirebaseFacade.encode(userRepository.getUserEmail()), residentId, to, threadId, personal, subject, content) //
                     .observeOn(AndroidSchedulers.mainThread()) //
                     .subscribe(noOp -> finish(), e -> {
                         e.printStackTrace();
