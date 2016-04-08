@@ -273,6 +273,11 @@ class Repository @Inject()(firebaseFutureWrappers: FirebaseFutureWrappers, appCo
       s"$messagePath/content" -> Util.foldToBlank[String](message.content, identity))
     labelsAsMap ++ labelsDeletionsAsMap ++ residentAsMap ++ messagesAsMap
   }
+
+  def deleteOutboxMessage(email: Email, id: String) = {
+    val url = s"${appConf.getFirebaseUrl}/${OutboxPath}/${Util.encode(email)}/${id}"
+    firebaseFutureWrappers.setValueFuture(url, null)
+  }
 }
 
 class RepositoryListeners @Inject()(firebaseFutureWrappers: FirebaseFutureWrappers, appConf: AppConf) {
@@ -321,12 +326,13 @@ class RepositoryListeners @Inject()(firebaseFutureWrappers: FirebaseFutureWrappe
     val url = s"${appConf.getFirebaseUrl}/${OutboxPath}/${Util.encode(email)}"
     def callback: (DataSnapshot) => Unit = {
       snapshot => {
+        val id = snapshot.getKey
         val residentId = snapshot.child("residentId").getValue.asInstanceOf[String]
         val threadId = snapshot.child("threadId").getValue.asInstanceOf[String]
         val to = snapshot.child("to").getValue.asInstanceOf[String]
         val personal = snapshot.child("personal").getValue.asInstanceOf[String]
         val content = snapshot.child("content").getValue.asInstanceOf[String]
-        onMessageAdded(OutboxMessage(residentId, threadId, to, personal, content))
+        onMessageAdded(OutboxMessage(id, residentId, threadId, to, personal, content))
       }
     }
     firebaseFutureWrappers.listenChildEvent(url, callback)

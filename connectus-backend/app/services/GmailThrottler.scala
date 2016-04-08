@@ -25,6 +25,7 @@ object GmailRequests {
   case class SendMessageRequestMsg(request: () => Future[_], client: Option[ActorRef] = None)
   case class GetThreadRequestMsg(request: () => Future[_], client: Option[ActorRef] = None)
   case class ListThreadsRequestMsg(request: () => Future[_], client: Option[ActorRef] = None)
+  case class ModifyThreadRequestMsg(request: () => Future[_], client: Option[ActorRef] = None)
   case class WatchRequestMsg(request: () => Future[_], client: Option[ActorRef] = None)
 }
 
@@ -51,10 +52,11 @@ class GmailThrottlerClient @Inject()(@Named(GmailThrottlerActor.actorName) googl
   def scheduleListLabels(email: Email, request: Gmail#Users#Labels#List) = schedule(email, request, ListLabelsRequestMsg.apply).map(_.get)
   def scheduleGetMessage(email: Email, request: Gmail#Users#Messages#Get) = schedule(email, request, GetMessageRequestMsg.apply).map(_.get)
   def scheduleListMessages(email: Email, request: Gmail#Users#Messages#List) = schedule(email, request, ListMessagesRequestMsg.apply).map(_.get)
-  def scheduleModifyMessage(email: Email, request: Gmail#Users#Messages#Modify) = schedule(email, request, GetMessageRequestMsg.apply).map(_.get)
+  def scheduleModifyMessage(email: Email, request: Gmail#Users#Messages#Modify) = schedule(email, request, ModifyMessageRequestMsg.apply).map(_.get)
   def scheduleSendMessage(email: Email, request: Gmail#Users#Messages#Send) = schedule(email, request, SendMessageRequestMsg.apply).map(_.get)
   def scheduleGetThread(email: Email, request: Gmail#Users#Threads#Get) = schedule(email, request, GetThreadRequestMsg.apply).map(_.get)
   def scheduleListThreads(email: Email, request: Gmail#Users#Threads#List) = schedule(email, request, ListThreadsRequestMsg.apply).map(_.get)
+  def scheduleModifyThread(email: Email, request: Gmail#Users#Threads#Modify) = schedule(email, request, ModifyThreadRequestMsg.apply).map(_.get)
   def scheduleWatch(email: Email, request: Gmail#Users#Watch) = schedule(email, request, WatchRequestMsg.apply).map(_.get)
 }
 
@@ -84,6 +86,7 @@ class GmailThrottlerActor extends Actor with ActorLogging {
     case request@SendMessageRequestMsg(_, _) => dispatcher ! request.copy(client = Some(sender))
     case request@GetThreadRequestMsg(_, _) => dispatcher ! request.copy(client = Some(sender))
     case request@ListThreadsRequestMsg(_, _) => dispatcher ! request.copy(client = Some(sender))
+    case request@ModifyThreadRequestMsg(_, _) => dispatcher ! request.copy(client = Some(sender))
     case request@WatchRequestMsg(_, _) => dispatcher ! request.copy(client = Some(sender))
   }
 }
@@ -98,9 +101,10 @@ class DispatcherActor extends Actor with ActorLogging {
   val getMessageActor = ThrottlerUtils.createThrottler(context, Props(new SchedulerActor), 5 msgsPerSecond)
   val listMessagesActor = ThrottlerUtils.createThrottler(context, Props(new SchedulerActor), 5 msgsPerSecond)
   val sendMessageActor = ThrottlerUtils.createThrottler(context, Props(new SchedulerActor), 100 msgsPerSecond)
-  val modifyMessagesActor = ThrottlerUtils.createThrottler(context, Props(new SchedulerActor), 5 msgsPerSecond)
+  val modifyMessageActor = ThrottlerUtils.createThrottler(context, Props(new SchedulerActor), 5 msgsPerSecond)
   val getThreadActor = ThrottlerUtils.createThrottler(context, Props(new SchedulerActor), 10 msgsPerSecond)
   val listThreadsActor = ThrottlerUtils.createThrottler(context, Props(new SchedulerActor), 10 msgsPerSecond)
+  val modifyThreadActor = ThrottlerUtils.createThrottler(context, Props(new SchedulerActor), 5 msgsPerSecond)
   val watchActor = ThrottlerUtils.createThrottler(context, Props(new SchedulerActor), 100 msgsPerSecond)
 
   override def receive: Receive = {
@@ -112,9 +116,10 @@ class DispatcherActor extends Actor with ActorLogging {
     case request@GetMessageRequestMsg(_, _) => getMessageActor ! request
     case request@ListMessagesRequestMsg(_, _) => listMessagesActor ! request
     case request@SendMessageRequestMsg(_, _) => sendMessageActor ! request
-    case request@ModifyMessageRequestMsg(_, _) => modifyMessagesActor ! request
+    case request@ModifyMessageRequestMsg(_, _) => modifyMessageActor ! request
     case request@GetThreadRequestMsg(_, _) => getThreadActor ! request
     case request@ListThreadsRequestMsg(_, _) => listThreadsActor ! request
+    case request@ModifyThreadRequestMsg(_, _) => modifyMessageActor ! request
     case request@WatchRequestMsg(_, _) => watchActor ! request
   }
 }
@@ -132,6 +137,7 @@ class SchedulerActor extends Actor with ActorLogging {
     case ModifyMessageRequestMsg(request, Some(client)) => context.actorOf(Props(new RequestExecutor(request, client)))
     case GetThreadRequestMsg(request, Some(client)) => context.actorOf(Props(new RequestExecutor(request, client)))
     case ListThreadsRequestMsg(request, Some(client)) => context.actorOf(Props(new RequestExecutor(request, client)))
+    case ModifyThreadRequestMsg(request, Some(client)) => context.actorOf(Props(new RequestExecutor(request, client)))
     case WatchRequestMsg(request, Some(client)) => context.actorOf(Props(new RequestExecutor(request, client)))
   }
 }

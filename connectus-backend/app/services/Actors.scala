@@ -139,11 +139,18 @@ object ResidentActor {
 }
 
 class ResidentActor @Inject()(tagger: LabelService, jobQueueActorClient: JobQueueActorClient) extends Actor with ActorLogging {
+
+  def sync(email: Email) =
+    for {
+      allLabels <- tagger.listAllLabels(email)
+      result <- tagger.syncResidentLabels(email, allLabels)
+    } yield result
+
   def receive: Receive = {
     case request@ResidentActor.ResidentAdded(email, resident) =>
-      jobQueueActorClient.schedule(email, tagger.syncResidentLabels(email)).map(result => self !(request, result))
+      jobQueueActorClient.schedule(email, sync(email)).map(result => self !(request, result))
     case request@ResidentActor.ResidentRemoved(email, resident) =>
-      jobQueueActorClient.schedule(email, tagger.syncResidentLabels(email)).map(result => self !(request, result))
+      jobQueueActorClient.schedule(email, sync(email)).map(result => self !(request, result))
     case (ResidentActor.ResidentAdded(email, resident), Success(_)) =>
       Logger.info(s"Success at initializing resident ${resident} for $email")
     case (ResidentActor.ResidentAdded(email, resident), Failure(e)) =>

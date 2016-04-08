@@ -32,10 +32,9 @@ class LabelServiceTest extends TestBase {
     val roger = Resident("resident_1", "roger", "Roger", None)
     val rogerLabel = new GmailLabel("label_1", LabelService.toLabelName(roger))
 
-    when(mailClient.listLabels(accountId)) thenReturn fs(List())
     when(mailClient.createLabel(accountId, rogerLabel.name)) thenReturn fs(rogerLabel)
 
-    val result = labelService.syncResidentLabels(accountId, List(roger))
+    val result = labelService.syncResidentLabels(accountId, List(roger), List())
     val residents = Await.result(result, Duration.Inf)
 
     assert(residents == Map(roger.copy(labelId = Some(rogerLabel.id)) -> rogerLabel))
@@ -49,10 +48,9 @@ class LabelServiceTest extends TestBase {
     val robert = Resident("resident_2", "robert", "Robert", None)
     val robertLabel = new GmailLabel("label_2", LabelService.toLabelName(robert))
 
-    when(mailClient.listLabels(accountId)) thenReturn fs(List(rogerLabel))
     when(mailClient.createLabel(accountId, robertLabel.name)) thenReturn fs(robertLabel)
 
-    val result = labelService.syncResidentLabels(accountId, List(roger, robert))
+    val result = labelService.syncResidentLabels(accountId, List(roger, robert), List(rogerLabel))
     val residents = Await.result(result, Duration.Inf)
 
     assert(residents == Map(
@@ -65,10 +63,9 @@ class LabelServiceTest extends TestBase {
     val roger = Resident("resident_1", "roger", "Roger", Some("label_1"))
     val rogerLabel = new GmailLabel("label_2", LabelService.toLabelName(roger))
 
-    when(mailClient.listLabels(accountId)) thenReturn fs(List())
     when(mailClient.createLabel(accountId, rogerLabel.name)) thenReturn fs(rogerLabel)
 
-    val result = labelService.syncResidentLabels(accountId, List(roger))
+    val result = labelService.syncResidentLabels(accountId, List(roger), List())
     val residents = Await.result(result, Duration.Inf)
 
     assert(residents == Map(roger.copy(labelId = Some(rogerLabel.id)) -> rogerLabel))
@@ -79,10 +76,9 @@ class LabelServiceTest extends TestBase {
     val roger = Resident("resident_1", "roger", "Roger", None)
     val rogerLabel = new GmailLabel("label_1", LabelService.toLabelName(roger))
 
-    when(mailClient.listLabels(accountId)) thenReturn fs(List(rogerLabel))
     when(mailClient.createLabel(accountId, rogerLabel.name)) thenReturn fs(rogerLabel)
 
-    val result = labelService.syncResidentLabels(accountId, List(roger))
+    val result = labelService.syncResidentLabels(accountId, List(roger), List(rogerLabel))
     val residents = Await.result(result, Duration.Inf)
 
     assert(residents == Map(roger.copy(labelId = Some(rogerLabel.id)) -> rogerLabel))
@@ -94,10 +90,9 @@ class LabelServiceTest extends TestBase {
     val rogerLabel = new GmailLabel("label_1", LabelService.toLabelName(roger))
     val danglingLabel = new GmailLabel("label_2", s"${LabelService.ConnectusLabelName}/Dangling Label")
 
-    when(mailClient.listLabels(accountId)) thenReturn fs(List(rogerLabel, danglingLabel))
     when(mailClient.deleteLabel(accountId, danglingLabel)) thenReturn fs(())
 
-    val result = labelService.removeDanglingLabels(accountId, Map(roger -> rogerLabel))
+    val result = labelService.removeDanglingLabels(accountId, Map(roger -> rogerLabel), List(rogerLabel, danglingLabel))
     Await.ready(result, Duration.Inf)
     verify(mailClient).deleteLabel(any, any)
   }

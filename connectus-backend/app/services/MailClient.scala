@@ -6,7 +6,7 @@ import java.time.format.DateTimeParseException
 import javax.inject.Inject
 
 import com.google.api.services.gmail.model._
-import common.Email
+import common._
 import model.{GmailLabel, GmailMessage, GmailThread, GmailWatchReply, InternetAddress}
 import play.api.Logger
 
@@ -27,11 +27,13 @@ class MailClient @Inject()(gmailClient: GmailClient) {
   }
 
   def addLabels(email: Email, query: String, labels: List[GmailLabel]): Future[Unit] = {
-    Logger.info(s"Adding label ${labels} to messages from query '${query}' for ${email}")
-    for {
-      allLabels <- gmailClient.listLabels(email)
-      messages <- gmailClient.addLabels(email, query, labels.map(_.id))
-    } yield ()
+    Logger.info(s"Adding label ${labels} to threads from query '${query}' for ${email}")
+    if (labels.isEmpty) fs(()) else gmailClient.addLabels(email, query, labels.map(_.id)).map(_ => ())
+  }
+
+  def removeLabels(email: Email, query: String, labels: List[GmailLabel]): Future[Unit] = {
+    Logger.info(s"Removing label ${labels} to threads from query '${query}' for ${email}")
+    if (labels.isEmpty) fs(()) else gmailClient.removeLabels(email, query, labels.map(_.id)).map(_ => ())
   }
 
   def deleteLabel(email: Email, label: GmailLabel) = {
@@ -44,33 +46,23 @@ class MailClient @Inject()(gmailClient: GmailClient) {
     gmailClient.listThreads(email, query).map(_.map(thread => ThreadMapper(thread)))
   }
 
-  def listMessagesOfThread(email: Email, threadId: String): Future[List[GmailMessage]] = {
+  def listMessagesOfThread(email: Email, threadId: String, allLabels: List[GmailLabel]): Future[List[GmailMessage]] = {
     Logger.info(s"Listing messages of thread with id ${threadId} for ${email}")
-    for {
-      allLabels <- gmailClient.listLabels(email)
-      messages <- gmailClient.listMessagesOfThread(email, threadId)
-    } yield messages.map(message => MessageMapper(message, allLabels))
+    gmailClient.listMessagesOfThread(email, threadId).map(_.map(message => MessageMapper(message, allLabels)))
   }
 
-  def listMessages(email: Email, query: String): Future[List[GmailMessage]] = {
-    Logger.info(s"Listing messages from query '${query}' for ${email}")
-    for {
-      allLabels <- gmailClient.listLabels(email)
-      messages <- gmailClient.listMessages(email, query)
-    } yield messages.map(message => MessageMapper(message, allLabels))
-  }
-
-  def watch(email: Email) =
+  def watch(email: Email) = {
+    Logger.info(s"watch for ${email}")
     gmailClient.watch(email).map(response => WatchMapper(response))
+  }
 
-  def reply(email: Email, labels: List[GmailLabel], threadId: String, toAddress: String, personal: String, content: String) =
-    for {
-      allLabels <- gmailClient.listLabels(email)
-      message <- gmailClient.reply(email, threadId, toAddress, personal, content)
-      _ <- gmailClient.addLabels(email, List(message.getId), labels.map(_.id))
-    } yield ()
+  def reply(email: Email, threadId: String, toAddress: String, personal: String, content: String, allLabels: List[GmailLabel]) = {
+    Logger.info(s"Reply to address ${toAddress} and threadId ${threadId} for ${email}")
+    gmailClient.reply(email, threadId, toAddress, personal, content)
+  }
 
   def getLastHistoryId(email: Email, startHistoryId: BigInt): Future[BigInt] = {
+    Logger.info(s"Listing history with startHistoryId ${startHistoryId} for ${email}")
     gmailClient.listHistory(email, startHistoryId).map(_.getHistoryId)
   }
 }
@@ -93,7 +85,7 @@ object ThreadMapper {
 
 object MessageMapper {
 
-  def apply(message: Message, allLabels: List[Label]): GmailMessage = {
+  def apply(message: Message, allLabels: List[GmailLabel]): GmailMessage = {
     val headers = message.getPayload.getHeaders.asScala.toList
     val dateOpt = getHeader(headers, "Date").flatMap(parseDate(_))
     val fromOpt = getHeader(headers, "From").map(parseHeader(_))
@@ -102,8 +94,8 @@ object MessageMapper {
     val contentOpt = getContentAsText(message) map (_.trim)
     val historyId = message.getHistoryId
     val gmailLabels = message.getLabelIds.asScala.toList
-      .map(labelId => allLabels.find(_.getId() == labelId)).flatten
-      .map(label => GmailLabel(label.getId, label.getName))
+      .map(labelId => allLabels.find(_.id == labelId)).flatten
+      .map(label => GmailLabel(label.id, label.name))
     val complete = dateOpt.isDefined && fromOpt.isDefined && subjectOpt.isDefined && contentOpt.isDefined
     GmailMessage(message.getId, dateOpt, fromOpt, toOpt, subjectOpt, contentOpt, historyId, gmailLabels, complete)
   }

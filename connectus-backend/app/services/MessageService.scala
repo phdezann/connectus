@@ -14,7 +14,7 @@ class MessageService @Inject()(mailClient: MailClient, labelService: LabelServic
 
   var historyIdOpt: Option[BigInt] = None
 
-  def tagInbox(email: Email): Future[Unit] = {
+  def tagInbox(email: Email, ignoreHistoryId: Boolean = false): Future[Unit] = {
     def doLabelMessages(connectusLabel: GmailLabel, residentLabels: Map[Resident, GmailLabel]) =
       repository.getResidentsAndContacts(email)
         .flatMap { residents =>
@@ -30,11 +30,12 @@ class MessageService @Inject()(mailClient: MailClient, labelService: LabelServic
         }
 
     def doTagInbox(newHistoryId: BigInt): Future[Unit] = for {
-      _ <- labelService.removeAll(email)
-      connectusLabel <- labelService.getOrCreateConnectusLabel(email)
-      residentsLabels <- labelService.syncResidentLabels(email)
+      allLabels <- labelService.listAllLabels(email)
+      _ <- labelService.untagAll(email, allLabels)
+      connectusLabel <- labelService.getOrCreateConnectusLabel(email, allLabels)
+      residentsLabels <- labelService.syncResidentLabels(email, allLabels)
       _ <- doLabelMessages(connectusLabel, residentsLabels)
-      threadBundles <- getThreadBundles(email)
+      threadBundles <- getThreadBundles(email, allLabels)
       messagesSnapshot <- repository.getMessagesSnapshot(email)
       _ <- repository.saveThreads(email, threadBundles, messagesSnapshot, residentsLabels)
     } yield {
@@ -57,47 +58,40 @@ class MessageService @Inject()(mailClient: MailClient, labelService: LabelServic
       }
     }
 
-    getLatestHistoryId(email).flatMap { latestHistoryId =>
-      (historyIdOpt, latestHistoryId) match {
-        case (None, Some(latestHistoryId)) =>
+    getLatestHistoryId(email).flatMap { latestHistoryIdOpt =>
+      (ignoreHistoryId, historyIdOpt, latestHistoryIdOpt) match {
+        case (true, _, Some(latestHistoryId)) =>
+          Logger.info(s"Ignoring historyId, tagging the inbox with latestHistoryId ${latestHistoryId}")
+          doTagInbox(latestHistoryId)
+        case (false, None, Some(latestHistoryId)) =>
           Logger.info(s"No historyId saved from previous calls, tagging the inbox with latestHistoryId ${latestHistoryId}")
           doTagInbox(latestHistoryId)
-        case (Some(historyId), Some(latestHistoryId)) if latestHistoryId > historyId =>
+        case (false, Some(historyId), Some(latestHistoryId)) if latestHistoryId > historyId =>
           Logger.info(s"historyId ${historyId} saved from previous calls is older than the current one ${latestHistoryId}, tagging the inbox")
           doTagInbox(latestHistoryId)
-        case (Some(historyId), Some(latestHistoryId)) if historyId <= latestHistoryId =>
+        case (false, Some(historyId), Some(latestHistoryId)) if historyId <= latestHistoryId =>
           Logger.info(s"historyId ${historyId} saved from previous calls and current one ${latestHistoryId} indicates that tagging the inbox can be skipped")
           fs(())
       }
     }
   }
 
-  private def getThreadBundles(email: Email): Future[List[ThreadBundle]] = {
+  private def getThreadBundles(email: Email, allLabels: List[GmailLabel]): Future[List[ThreadBundle]] = {
     val query = LabelService.allMessages
     mailClient.listThreads(email, query).flatMap { threads =>
       val messages = threads.map(thread =>
         mailClient
-          .listMessagesOfThread(email, thread.id)
+          .listMessagesOfThread(email, thread.id, allLabels)
           .map(ThreadBundle(thread, _)))
       Future.sequence(messages)
     }
   }
 
-  def reply(email: Email, outboxMessage: OutboxMessage): Future[Unit] = {
-    def findResidentLabel(residentLabels: Map[Resident, GmailLabel]) = {
-      labelService.syncResidentLabels(email).map {
-        _.find { case (resident, label) => resident.id == outboxMessage.residentId }.map { case (_, label) => label }.get
-      }
-    }
+  def reply(email: Email, outboxMessage: OutboxMessage): Future[Unit] =
     for {
-      residentsLabels <- labelService.syncResidentLabels(email)
-      connectusLabel <- labelService.getOrCreateConnectusLabel(email)
-      residentsLabel <- findResidentLabel(residentsLabels)
-      labels = List(residentsLabel, connectusLabel)
-      _ <- mailClient.reply(email, labels, outboxMessage.threadId, outboxMessage.to, outboxMessage.personal, outboxMessage.content)
-      threadBundles <- getThreadBundles(email)
-      messagesSnapshot <- repository.getMessagesSnapshot(email)
-      _ <- repository.saveThreads(email, threadBundles, messagesSnapshot, residentsLabels) //** TODO **/
+      allLabels <- labelService.listAllLabels(email)
+      _ <- mailClient.reply(email, outboxMessage.threadId, outboxMessage.to, outboxMessage.personal, outboxMessage.content, allLabels)
+      _ <- repository.deleteOutboxMessage(email, outboxMessage.id)
+      _ <- tagInbox(email)
     } yield ()
-  }
 }

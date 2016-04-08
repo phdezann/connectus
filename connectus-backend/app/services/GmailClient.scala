@@ -115,23 +115,30 @@ class GmailClient @Inject()(appConf: AppConf, googleAuthorization: GoogleAuthori
     gmailThrottlerClient.scheduleCreateLabel(userId, request)
   }
 
-  def addLabels(userId: String, query: String, labelIds: List[String]): Future[List[Message]] =
+  def addLabels(userId: String, query: String, labelIds: List[String]): Future[List[Thread]] =
     for {
       gmail <- getService(userId)
-      partialMessages <- listMessages(userId, gmail, query)
-      messages <- addLabels(userId, gmail, partialMessages.map(_.getId), labelIds)
+      threads <- listThreads(userId, query)
+      messages <- addLabels(userId, gmail, threads, labelIds)
     } yield messages
 
-  def addLabels(userId: String, messageIds: List[String], labelIds: List[String]): Future[List[Message]] =
+  private def addLabels(userId: String, gmail: Gmail, threads: List[Thread], labelIds: List[String]): Future[List[Thread]] = {
+    val modifyThreadRequest = new ModifyThreadRequest().setAddLabelIds(labelIds.asJava)
+    val requests = threads.map(pm => gmail.users().threads().modify("me", pm.getId, modifyThreadRequest))
+    seq[Gmail#Users#Threads#Modify, Thread](requests, gmailThrottlerClient.scheduleModifyThread(userId, _))
+  }
+
+  def removeLabels(userId: String, query: String, labelIds: List[String]): Future[List[Thread]] =
     for {
       gmail <- getService(userId)
-      messages <- addLabels(userId, gmail, messageIds, labelIds)
+      threads <- listThreads(userId, query)
+      messages <- removeLabels(userId, gmail, threads, labelIds)
     } yield messages
 
-  private def addLabels(userId: String, gmail: Gmail, messageIds: List[String], labelIds: List[String]): Future[List[Message]] = {
-    val modifyMessageRequest = new ModifyMessageRequest().setAddLabelIds(labelIds.asJava)
-    val requests = messageIds.map(pm => gmail.users().messages().modify("me", pm, modifyMessageRequest))
-    seq[Gmail#Users#Messages#Modify, Message](requests, gmailThrottlerClient.scheduleModifyMessage(userId, _))
+  private def removeLabels(userId: String, gmail: Gmail, threads: List[Thread], labelIds: List[String]): Future[List[Thread]] = {
+    val modifyThreadRequest = new ModifyThreadRequest().setRemoveLabelIds(labelIds.asJava)
+    val requests = threads.map(pm => gmail.users().threads().modify("me", pm.getId, modifyThreadRequest))
+    seq[Gmail#Users#Threads#Modify, Thread](requests, gmailThrottlerClient.scheduleModifyThread(userId, _))
   }
 
   def deleteLabel(userId: String, labelId: String): Future[Unit] =
