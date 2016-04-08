@@ -47,7 +47,7 @@ class RepositoryTest extends TestBase {
   }
 
   test("buildContactQuery with empty contact list") {
-    assert(LabelService.residentUntaggedMessages(List()) == "label:inbox -label:connectus label:no-contact")
+    assert(LabelService.residentUntaggedMessages(List()) == s"label:inbox -label:connectus label:${LabelService.AbsentLabelName}")
   }
 
   test("find deleted messages") {

@@ -8,6 +8,7 @@ import javax.inject.Inject
 import com.google.api.services.gmail.model._
 import common.Email
 import model.{GmailLabel, GmailMessage, GmailThread, GmailWatchReply, InternetAddress}
+import play.api.Logger
 
 import scala.collection.JavaConverters._
 import scala.concurrent.Future
@@ -15,35 +16,49 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 class MailClient @Inject()(gmailClient: GmailClient) {
 
-  def listLabels(email: Email): Future[List[GmailLabel]] =
+  def listLabels(email: Email): Future[List[GmailLabel]] = {
+    Logger.info(s"Listing all labels for ${email}")
     gmailClient.listLabels(email).map(_.map(label => LabelMapper(label)))
+  }
 
-  def createLabel(email: Email, labelName: String): Future[GmailLabel] =
+  def createLabel(email: Email, labelName: String): Future[GmailLabel] = {
+    Logger.info(s"Creation label with name ${labelName} for ${email}")
     gmailClient.createLabel(email, labelName).map(label => LabelMapper(label))
+  }
 
-  def addLabels(email: Email, query: String, labelIds: List[String]): Future[Unit] =
+  def addLabels(email: Email, query: String, labels: List[GmailLabel]): Future[Unit] = {
+    Logger.info(s"Adding label ${labels} to messages from query '${query}' for ${email}")
     for {
       allLabels <- gmailClient.listLabels(email)
-      messages <- gmailClient.addLabels(email, query, labelIds)
+      messages <- gmailClient.addLabels(email, query, labels.map(_.id))
     } yield ()
+  }
 
-  def deleteLabel(email: Email, labelId: String) =
-    gmailClient.deleteLabel(email, labelId)
+  def deleteLabel(email: Email, label: GmailLabel) = {
+    Logger.info(s"Deleting label ${label} for ${email}")
+    gmailClient.deleteLabel(email, label.id)
+  }
 
-  def listThreads(email: Email, query: String) =
+  def listThreads(email: Email, query: String): Future[List[GmailThread]] = {
+    Logger.info(s"Listing threads from query '${query}' for ${email}")
     gmailClient.listThreads(email, query).map(_.map(thread => ThreadMapper(thread)))
+  }
 
-  def listMessagesOfThread(email: Email, threadId: String): Future[List[GmailMessage]] =
+  def listMessagesOfThread(email: Email, threadId: String): Future[List[GmailMessage]] = {
+    Logger.info(s"Listing messages of thread with id ${threadId} for ${email}")
     for {
       allLabels <- gmailClient.listLabels(email)
       messages <- gmailClient.listMessagesOfThread(email, threadId)
     } yield messages.map(message => MessageMapper(message, allLabels))
+  }
 
-  def listMessages(email: Email, query: String): Future[List[GmailMessage]] =
+  def listMessages(email: Email, query: String): Future[List[GmailMessage]] = {
+    Logger.info(s"Listing messages from query '${query}' for ${email}")
     for {
       allLabels <- gmailClient.listLabels(email)
       messages <- gmailClient.listMessages(email, query)
     } yield messages.map(message => MessageMapper(message, allLabels))
+  }
 
   def watch(email: Email) =
     gmailClient.watch(email).map(response => WatchMapper(response))
@@ -54,6 +69,10 @@ class MailClient @Inject()(gmailClient: GmailClient) {
       message <- gmailClient.reply(email, threadId, toAddress, personal, content)
       _ <- gmailClient.addLabels(email, List(message.getId), labels.map(_.id))
     } yield ()
+
+  def getLastHistoryId(email: Email, startHistoryId: BigInt): Future[BigInt] = {
+    gmailClient.listHistory(email, startHistoryId).map(_.getHistoryId)
+  }
 }
 
 object WatchMapper {

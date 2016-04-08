@@ -31,8 +31,8 @@ class UserActorClient @Inject()(@Named(UserActors.actorName) userActorProvider: 
   implicit val timeout = Timeouts.oneMinute
   def getJobQueueActor(email: Email): Future[ActorRef] =
     (userActor ? UserActors.GetJobQueueActor(email)).mapTo[ActorRef]
-  def getGmailThrottlerActor(email: Email): Future[ActorRef] =
-    (userActor ? UserActors.GetGmailThrottlerActorActor(email)).mapTo[ActorRef]
+  def getGmailThrottlerActor(email: Email): Future[Option[ActorRef]] =
+    (userActor ? UserActors.GetGmailThrottlerActorActor(email)).mapTo[Option[ActorRef]]
 }
 
 @Singleton
@@ -105,7 +105,7 @@ class UserActors @Inject()(residentListenerActorFactory: ResidentListenerActor.F
     case UserActors.GetJobQueueActor(email: Email) =>
       sender ! jobQueues(email).jobQueueActor
     case UserActors.GetGmailThrottlerActorActor(email: Email) =>
-      sender ! jobQueues(email).gmailThrottlerActor
+      sender ! jobQueues.get(email).map(_.gmailThrottlerActor)
   }
 }
 

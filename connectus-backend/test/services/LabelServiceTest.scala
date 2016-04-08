@@ -95,7 +95,7 @@ class LabelServiceTest extends TestBase {
     val danglingLabel = new GmailLabel("label_2", s"${LabelService.ConnectusLabelName}/Dangling Label")
 
     when(mailClient.listLabels(accountId)) thenReturn fs(List(rogerLabel, danglingLabel))
-    when(mailClient.deleteLabel(accountId, danglingLabel.id)) thenReturn fs(())
+    when(mailClient.deleteLabel(accountId, danglingLabel)) thenReturn fs(())
 
     val result = labelService.removeDanglingLabels(accountId, Map(roger -> rogerLabel))
     Await.ready(result, Duration.Inf)

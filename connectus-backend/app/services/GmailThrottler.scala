@@ -14,6 +14,7 @@ import scala.concurrent._
 import scala.language.postfixOps
 
 object GmailRequests {
+  case class ListHistoryRequestMsg(request: () => Future[_], client: Option[ActorRef] = None)
   case class CreateLabelRequestMsg(request: () => Future[_], client: Option[ActorRef] = None)
   case class DeleteLabelRequestMsg(request: () => Future[_], client: Option[ActorRef] = None)
   case class GetLabelRequestMsg(request: () => Future[_], client: Option[ActorRef] = None)
@@ -34,10 +35,16 @@ class GmailThrottlerClient @Inject()(@Named(GmailThrottlerActor.actorName) googl
 
   def schedule[T](email: Email, request: GmailRequest[T], msgBuilder: (() => Future[_], Option[ActorRef]) => Any): Future[Option[T]] = {
     def execute[T](request: => GmailRequest[T]) = () => Future {concurrent.blocking {request.execute}}
-    val actor = userActorClient.getGmailThrottlerActor(email)
-    actor.flatMap(actor => (actor ? msgBuilder(execute(request), None)).asInstanceOf[Future[Option[T]]])
+    userActorClient.getGmailThrottlerActor(email).flatMap { actorOpt =>
+      if (actorOpt.isDefined) {
+        (actorOpt.get ? msgBuilder(execute(request), None)).asInstanceOf[Future[Option[T]]]
+      } else {
+        execute(request)().map(Option(_))
+      }
+    }
   }
 
+  def scheduleListHistory(email: Email, request: Gmail#Users#History#List) = schedule(email, request, ListHistoryRequestMsg.apply).map(_.get)
   def scheduleCreateLabel(email: Email, request: Gmail#Users#Labels#Create) = schedule(email, request, CreateLabelRequestMsg.apply).map(_.get)
   def scheduleDeleteLabel(email: Email, request: Gmail#Users#Labels#Delete) = schedule(email, request, DeleteLabelRequestMsg.apply).map(_ => ())
   def scheduleGetLabel(email: Email, request: Gmail#Users#Labels#Get) = schedule(email, request, GetLabelRequestMsg.apply).map(_.get)
@@ -66,6 +73,7 @@ object GmailThrottlerActor {
 class GmailThrottlerActor extends Actor with ActorLogging {
   val dispatcher = ThrottlerUtils.createThrottler(context, Props(new DispatcherActor), 250 msgsPerSecond)
   override def receive: Receive = {
+    case request@ListHistoryRequestMsg(_, _) => dispatcher ! request.copy(client = Some(sender))
     case request@CreateLabelRequestMsg(_, _) => dispatcher ! request.copy(client = Some(sender))
     case request@DeleteLabelRequestMsg(_, _) => dispatcher ! request.copy(client = Some(sender))
     case request@GetLabelRequestMsg(_, _) => dispatcher ! request.copy(client = Some(sender))
@@ -82,6 +90,7 @@ class GmailThrottlerActor extends Actor with ActorLogging {
 
 class DispatcherActor extends Actor with ActorLogging {
   // https://developers.google.com/gmail/api/v1/reference/quota
+  val listHistoryActor = ThrottlerUtils.createThrottler(context, Props(new SchedulerActor), 2 msgsPerSecond)
   val createLabelActor = ThrottlerUtils.createThrottler(context, Props(new SchedulerActor), 5 msgsPerSecond)
   val deleteLabelActor = ThrottlerUtils.createThrottler(context, Props(new SchedulerActor), 5 msgsPerSecond)
   val getLabelActor = ThrottlerUtils.createThrottler(context, Props(new SchedulerActor), 1 msgsPerSecond)
@@ -95,6 +104,7 @@ class DispatcherActor extends Actor with ActorLogging {
   val watchActor = ThrottlerUtils.createThrottler(context, Props(new SchedulerActor), 100 msgsPerSecond)
 
   override def receive: Receive = {
+    case request@ListHistoryRequestMsg(_, _) => listHistoryActor ! request
     case request@CreateLabelRequestMsg(_, _) => createLabelActor ! request
     case request@DeleteLabelRequestMsg(_, _) => deleteLabelActor ! request
     case request@GetLabelRequestMsg(_, _) => getLabelActor ! request
@@ -111,6 +121,7 @@ class DispatcherActor extends Actor with ActorLogging {
 
 class SchedulerActor extends Actor with ActorLogging {
   override def receive: Receive = {
+    case ListHistoryRequestMsg(request, Some(client)) => context.actorOf(Props(new RequestExecutor(request, client)))
     case CreateLabelRequestMsg(request, Some(client)) => context.actorOf(Props(new RequestExecutor(request, client)))
     case DeleteLabelRequestMsg(request, Some(client)) => context.actorOf(Props(new RequestExecutor(request, client)))
     case GetLabelRequestMsg(request, Some(client)) => context.actorOf(Props(new RequestExecutor(request, client)))

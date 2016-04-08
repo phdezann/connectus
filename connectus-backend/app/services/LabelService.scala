@@ -10,6 +10,7 @@ import scala.concurrent.Future
 object LabelService {
   val InboxLabelName = "inbox"
   val ConnectusLabelName = "connectus"
+  val AbsentLabelName = "query-returns-nothing"
 
   def allMessages =
     s"label:$InboxLabelName"
@@ -19,7 +20,7 @@ object LabelService {
 
   private def buildContactQuery(contacts: List[Contact]) =
     if (contacts.isEmpty) {
-      "label:no-contact"
+      s"label:$AbsentLabelName"
     } else {
       contacts
         .map(contact => "from:" + contact.email)
@@ -93,7 +94,7 @@ class LabelService @Inject()(mailClient: MailClient, repository: Repository) {
 
   def removeDanglingLabels(email: Email, residents: Map[Resident, GmailLabel]) = {
     def deleteLabels(labels: List[GmailLabel]) = {
-      val all = labels.map(_.id).map(labelId => mailClient.deleteLabel(email, labelId))
+      val all = labels.map(label => mailClient.deleteLabel(email, label))
       Future.sequence(all)
     }
     for {

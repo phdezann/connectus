@@ -227,4 +227,16 @@ class GmailClient @Inject()(appConf: AppConf, googleAuthorization: GoogleAuthori
     val encodedEmail: String = Base64.encodeBase64URLSafeString(bytes.toByteArray)
     new Message().setRaw(encodedEmail)
   }
+
+  def listHistory(userId: String, startHistoryId: BigInt): Future[ListHistoryResponse] =
+    for {
+      gmail <- getService(userId)
+      result <- listHistory(userId, gmail, startHistoryId)
+    } yield result
+
+  private def listHistory(userId: String, gmail: Gmail, startHistoryId: BigInt): Future[ListHistoryResponse] = {
+    val request = gmail.users.history().list("me")
+    request.setStartHistoryId(startHistoryId.bigInteger)
+    gmailThrottlerClient.scheduleListHistory(userId, request)
+  }
 }
