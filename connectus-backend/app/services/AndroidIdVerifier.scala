@@ -2,7 +2,7 @@ package services
 
 import javax.inject.{Inject, Singleton}
 
-import _root_.support.AppConf
+import conf.AppConf
 import com.google.api.client.googleapis.auth.oauth2.{GoogleIdToken, GoogleIdTokenVerifier}
 import com.google.api.client.json.jackson2.JacksonFactory
 import play.api.Logger

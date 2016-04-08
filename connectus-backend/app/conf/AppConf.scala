@@ -1,4 +1,4 @@
-package support
+package conf
 
 import javax.inject.Inject
 

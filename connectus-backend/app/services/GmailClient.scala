@@ -6,7 +6,7 @@ import javax.inject.{Inject, Singleton}
 import javax.mail.Session
 import javax.mail.internet.{InternetAddress, MimeMessage}
 
-import _root_.support.AppConf
+import conf.AppConf
 import com.google.api.client.util.Base64
 import com.google.api.services.gmail.model._
 import com.google.api.services.gmail.{Gmail, GmailRequest}

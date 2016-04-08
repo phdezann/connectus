@@ -4,7 +4,7 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import javax.inject.{Inject, Singleton}
 
-import _root_.support.AppConf
+import conf.AppConf
 import com.firebase.client.{DataSnapshot, Firebase}
 import com.google.api.client.auth.oauth2.TokenResponseException
 import com.google.common.base.Throwables

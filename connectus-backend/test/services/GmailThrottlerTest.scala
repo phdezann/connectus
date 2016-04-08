@@ -3,7 +3,7 @@ package services
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 
-import _root_.support.AppConf
+import _root_.conf.AppConf
 import akka.actor.ActorRef
 import akka.pattern.ask
 import akka.util.Timeout

@@ -1,6 +1,6 @@
 package services
 
-import _root_.support.AppConf
+import _root_.conf.AppConf
 import com.google.api.client.googleapis.auth.oauth2.{GoogleIdToken, GoogleIdTokenVerifier, GoogleTokenResponse}
 import common._
 import org.mockito.Mockito._

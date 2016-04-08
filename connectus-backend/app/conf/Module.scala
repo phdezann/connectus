@@ -1,4 +1,4 @@
-package support
+package conf
 
 import java.time.{Clock, ZoneId}
 

@@ -1,6 +1,6 @@
 package services
 
-import _root_.support.AppConf
+import _root_.conf.AppConf
 import common._
 import model._
 import org.mockito.Mockito._

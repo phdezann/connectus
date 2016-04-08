@@ -3,7 +3,7 @@ package services
 import java.io.StringReader
 import javax.inject.{Inject, Singleton}
 
-import _root_.support.AppConf
+import conf.AppConf
 import com.google.api.client.auth.oauth2.Credential
 import com.google.api.client.auth.openidconnect.IdTokenResponse
 import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow.Builder

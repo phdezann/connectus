@@ -2,7 +2,7 @@ package controllers
 
 import javax.inject.Inject
 
-import _root_.support.AppConf
+import conf.AppConf
 import common._
 import model.{Notification, _}
 import org.apache.commons.codec.binary.StringUtils
