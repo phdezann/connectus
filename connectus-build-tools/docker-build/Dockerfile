@@ -3,15 +3,20 @@ FROM ubuntu:16.04
 ARG USER_UID=1000
 ARG USER_GID=1000
 
+ADD accept-apt-repository /usr/local/bin/
+ADD accept-oracle-licence /usr/local/bin/
+
 RUN apt-get update -y -q                                                                              \
     && apt-get install -y -q wget curl expect git-core net-tools socat dosfstools iputils-ping netcat \
-    && apt-get install -y -q openjdk-7-jdk openjdk-7-source openjdk-8-jdk openjdk-8-source            \
+    && apt-get install -y -q software-properties-common                                               \
+    && accept-apt-repository add-apt-repository ppa:webupd8team/java && apt-get update -y -q          \
+    && accept-oracle-licence apt-get install -y -q oracle-java7-installer oracle-java8-installer      \
     && apt-get install -y -q gcc-multilib lib32ncurses5 lib32z1                                       \
     && apt-get clean                                                                                  \
     && rm -rf /var/lib/apt/lists/*
 
-ENV JAVA8_HOME /usr/lib/jvm/java-8-openjdk-amd64
-ENV JAVA7_HOME /usr/lib/jvm/java-7-openjdk-amd64
+ENV JAVA8_HOME /usr/lib/jvm/java-8-oracle
+ENV JAVA7_HOME /usr/lib/jvm/java-7-oracle
 ENV JAVA_HOME ${JAVA8_HOME}
 
 RUN groupadd --gid $USER_GID connectus
