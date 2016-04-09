@@ -18,6 +18,8 @@ docker run                                                            \
     -it --rm                                                          \
     -e APPLICATION_FIREBASE_URL=$APPLICATION_FIREBASE_URL             \
     -e APPLICATION_FIREBASE_JWT_TOKEN=$APPLICATION_FIREBASE_JWT_TOKEN \
+    -v $(pwd)/.private:/private                                       \
+    -v $(pwd):/workspace                                              \
     -w /workspace/connectus-android-app                               \
     connectus-build                                                   \
     upload-release-description
