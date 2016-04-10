@@ -23,7 +23,7 @@ docker run                                                            \
     -w /workspace/connectus-android-app                               \
     connectus-build                                                   \
     upload-release-description
-docker run
+docker run                                                   \
     -it --rm                                                 \
     -e HEROKU_SSH_KEY_PATH=/private/id_rsa-travisci-4-heroku \
     -v $(pwd)/.private:/private                              \
