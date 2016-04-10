@@ -20,10 +20,11 @@ docker run                               \
     -w /workspace/connectus-backend      \
     connectus-build                      \
     sbt stage
-docker run                               \
-    -it --rm                             \
-    --volumes-from connectus-build-cache \
-    -v $(pwd):/workspace                 \
-    -w /workspace/connectus-android-app  \
-    connectus-build                      \
+docker run                                                \
+    -it --rm                                              \
+    --volumes-from connectus-build-cache                  \
+    -e APPLICATION_FIREBASE_URL=$APPLICATION_FIREBASE_URL \
+    -v $(pwd):/workspace                                  \
+    -w /workspace/connectus-android-app                   \
+    connectus-build                                       \
     /bin/bash -c "init-emulator && ./gradlew connectedAndroidTest"
