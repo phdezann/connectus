@@ -195,4 +195,15 @@ class GmailClient @Inject()(appConf: AppConf, googleAuthorization: GoogleAuthori
     request.setStartHistoryId(startHistoryId.bigInteger)
     gmailThrottlerClient.scheduleListHistory(userId, request)
   }
+
+  def getAttachment(userId: String, messageId: String, attachmentId: String): Future[MessagePartBody] =
+    for {
+      gmail <- googleAuthorization.getService(userId)
+      result <- getAttachment(userId, gmail, messageId, attachmentId)
+    } yield result
+
+  private def getAttachment(userId: String, gmail: Gmail, messageId: String, attachmentId: String): Future[MessagePartBody] = {
+    val request = gmail.users.messages().attachments().get(userId, messageId, attachmentId)
+    gmailThrottlerClient.scheduleGetMessageAttachment(userId, request)
+  }
 }

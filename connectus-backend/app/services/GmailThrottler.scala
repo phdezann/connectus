@@ -8,7 +8,7 @@ import akka.contrib.throttle.TimerBasedThrottler
 import akka.pattern.{ask, pipe}
 import com.google.api.services.gmail.{Gmail, GmailRequest}
 import common.Email
-import services.GmailRequests._
+import services.GmailRequests.{GetMessageAttachmentRequestMsg, _}
 
 import scala.concurrent._
 import scala.language.postfixOps
@@ -19,6 +19,7 @@ object GmailRequests {
   case class DeleteLabelRequestMsg(request: () => Future[_], client: Option[ActorRef] = None)
   case class GetLabelRequestMsg(request: () => Future[_], client: Option[ActorRef] = None)
   case class ListLabelsRequestMsg(request: () => Future[_], client: Option[ActorRef] = None)
+  case class GetMessageAttachmentRequestMsg(request: () => Future[_], client: Option[ActorRef] = None)
   case class GetMessageRequestMsg(request: () => Future[_], client: Option[ActorRef] = None)
   case class ListMessagesRequestMsg(request: () => Future[_], client: Option[ActorRef] = None)
   case class ModifyMessageRequestMsg(request: () => Future[_], client: Option[ActorRef] = None)
@@ -51,6 +52,7 @@ class GmailThrottlerClient @Inject()(@Named(GmailThrottlerActor.actorName) googl
   def scheduleDeleteLabel(email: Email, request: Gmail#Users#Labels#Delete) = schedule(email, request, DeleteLabelRequestMsg.apply).map(_ => ())
   def scheduleGetLabel(email: Email, request: Gmail#Users#Labels#Get) = schedule(email, request, GetLabelRequestMsg.apply).map(_.get)
   def scheduleListLabels(email: Email, request: Gmail#Users#Labels#List) = schedule(email, request, ListLabelsRequestMsg.apply).map(_.get)
+  def scheduleGetMessageAttachment(email: Email, request: Gmail#Users#Messages#Attachments#Get) = schedule(email, request, GetMessageAttachmentRequestMsg.apply).map(_.get)
   def scheduleGetMessage(email: Email, request: Gmail#Users#Messages#Get) = schedule(email, request, GetMessageRequestMsg.apply).map(_.get)
   def scheduleListMessages(email: Email, request: Gmail#Users#Messages#List) = schedule(email, request, ListMessagesRequestMsg.apply).map(_.get)
   def scheduleModifyMessage(email: Email, request: Gmail#Users#Messages#Modify) = schedule(email, request, ModifyMessageRequestMsg.apply).map(_.get)
@@ -81,6 +83,7 @@ class GmailThrottlerActor extends Actor with ActorLogging {
     case request@DeleteLabelRequestMsg(_, _) => dispatcher ! request.copy(client = Some(sender))
     case request@GetLabelRequestMsg(_, _) => dispatcher ! request.copy(client = Some(sender))
     case request@ListLabelsRequestMsg(_, _) => dispatcher ! request.copy(client = Some(sender))
+    case request@GetMessageAttachmentRequestMsg(_, _) => dispatcher ! request.copy(client = Some(sender))
     case request@GetMessageRequestMsg(_, _) => dispatcher ! request.copy(client = Some(sender))
     case request@ListMessagesRequestMsg(_, _) => dispatcher ! request.copy(client = Some(sender))
     case request@ModifyMessageRequestMsg(_, _) => dispatcher ! request.copy(client = Some(sender))
@@ -99,6 +102,7 @@ class DispatcherActor extends Actor with ActorLogging {
   val deleteLabelActor = ThrottlerUtils.createThrottler(context, Props(new SchedulerActor), 5 msgsPerSecond)
   val getLabelActor = ThrottlerUtils.createThrottler(context, Props(new SchedulerActor), 1 msgsPerSecond)
   val listLabelsActor = ThrottlerUtils.createThrottler(context, Props(new SchedulerActor), 1 msgsPerSecond)
+  val getMessageAttachmentActor = ThrottlerUtils.createThrottler(context, Props(new SchedulerActor), 5 msgsPerSecond)
   val getMessageActor = ThrottlerUtils.createThrottler(context, Props(new SchedulerActor), 5 msgsPerSecond)
   val listMessagesActor = ThrottlerUtils.createThrottler(context, Props(new SchedulerActor), 5 msgsPerSecond)
   val sendMessageActor = ThrottlerUtils.createThrottler(context, Props(new SchedulerActor), 100 msgsPerSecond)
@@ -114,6 +118,7 @@ class DispatcherActor extends Actor with ActorLogging {
     case request@DeleteLabelRequestMsg(_, _) => deleteLabelActor ! request
     case request@GetLabelRequestMsg(_, _) => getLabelActor ! request
     case request@ListLabelsRequestMsg(_, _) => listLabelsActor ! request
+    case request@GetMessageAttachmentRequestMsg(_, _) => getMessageAttachmentActor ! request
     case request@GetMessageRequestMsg(_, _) => getMessageActor ! request
     case request@ListMessagesRequestMsg(_, _) => listMessagesActor ! request
     case request@SendMessageRequestMsg(_, _) => sendMessageActor ! request
@@ -132,6 +137,7 @@ class SchedulerActor extends Actor with ActorLogging {
     case DeleteLabelRequestMsg(request, Some(client)) => context.actorOf(Props(new RequestExecutor(request, client)))
     case GetLabelRequestMsg(request, Some(client)) => context.actorOf(Props(new RequestExecutor(request, client)))
     case ListLabelsRequestMsg(request, Some(client)) => context.actorOf(Props(new RequestExecutor(request, client)))
+    case GetMessageAttachmentRequestMsg(request, Some(client)) => context.actorOf(Props(new RequestExecutor(request, client)))
     case GetMessageRequestMsg(request, Some(client)) => context.actorOf(Props(new RequestExecutor(request, client)))
     case ListMessagesRequestMsg(request, Some(client)) => context.actorOf(Props(new RequestExecutor(request, client)))
     case SendMessageRequestMsg(request, Some(client)) => context.actorOf(Props(new RequestExecutor(request, client)))

@@ -7,7 +7,7 @@ import javax.inject.{Inject, Singleton}
 
 import com.google.api.services.gmail.model._
 import common._
-import model.{GmailLabel, GmailMessage, GmailThread, GmailWatchReply, InternetAddress}
+import model.{GmailAttachment, GmailAttachmentData, GmailLabel, GmailMessage, GmailThread, GmailWatchReply, InternetAddress}
 import play.api.Logger
 
 import scala.collection.JavaConverters._
@@ -66,6 +66,11 @@ class MailClient @Inject()(gmailClient: GmailClient) {
     Logger.info(s"Listing history with startHistoryId ${startHistoryId} for ${email}")
     gmailClient.listHistory(email, startHistoryId).map(_.getHistoryId)
   }
+
+  def getAttachment(email: Email, messageId: String, attachmentId: String): Future[GmailAttachmentData] = {
+    Logger.info(s"Getting attachment with messageId ${messageId} and attachmentId ${attachmentId} for ${email}")
+    gmailClient.getAttachment(email, messageId, attachmentId).map(AttachmentMapper(_))
+  }
 }
 
 object WatchMapper {
@@ -97,8 +102,9 @@ object MessageMapper {
     val gmailLabels = message.getLabelIds.asScala.toList
       .map(labelId => allLabels.find(_.id == labelId)).flatten
       .map(label => GmailLabel(label.id, label.name))
+    val attachments = getAttachments(message)
     val complete = dateOpt.isDefined && fromOpt.isDefined && subjectOpt.isDefined && contentOpt.isDefined
-    GmailMessage(message.getId, dateOpt, fromOpt, toOpt, subjectOpt, contentOpt, historyId, gmailLabels, complete)
+    GmailMessage(message.getId, dateOpt, fromOpt, toOpt, subjectOpt, contentOpt, historyId, gmailLabels, attachments, complete)
   }
 
   private def getHeader(headers: List[MessagePartHeader], headerNameIgnoreCase: String): Option[String] =
@@ -183,8 +189,22 @@ object MessageMapper {
     }
   }
 
+  def getAttachments(message: Message): List[GmailAttachment] = {
+    // only keep parts with an attachmentId defined
+    parts(message).filter(p => Option(p.getBody.getAttachmentId).isDefined).map(part => {
+      val headers = part.getHeaders.asScala.map(header => (header.getName, header.getValue)).toMap
+      GmailAttachment(part.getPartId, part.getMimeType, part.getFilename, part.getBody.getSize, part.getBody.getAttachmentId, headers)
+    })
+  }
+
   private def parts(message: Message): List[MessagePart] = {
     // message.getPayload.getParts can be null
     Option(message.getPayload.getParts).fold[List[MessagePart]](List())(_.asScala.toList)
+  }
+}
+
+object AttachmentMapper {
+  def apply(messagePartBody: MessagePartBody): GmailAttachmentData = {
+    GmailAttachmentData(messagePartBody.getAttachmentId, messagePartBody.decodeData, messagePartBody.getSize)
   }
 }
