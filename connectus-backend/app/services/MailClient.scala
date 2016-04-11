@@ -58,7 +58,7 @@ class MailClient @Inject()(gmailClient: GmailClient) {
   }
 
   def watch(email: Email, labelIds: List[String]) = {
-    Logger.info(s"watch for ${email}")
+    Logger.info(s"Start watching for ${email}")
     gmailClient.watch(email, labelIds).map(response => WatchMapper(response))
   }
 
