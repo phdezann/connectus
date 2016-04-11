@@ -21,15 +21,16 @@ public class DateFormatter {
 
     public static String toPrettyString(DateTime date, DateTime now, DateTimeZone timeZone) {
         DateTime dateInDefaultTimeZone = date.toDateTime(timeZone);
-        DateTime dateMinusOneMinute = now.minusMinutes(1);
-        DateTime dateMinusOneHour = now.minusHours(1);
-        DateTime startOfToday = now.withTimeAtStartOfDay();
-        DateTime startOfYesterday = now.minusDays(1).withTimeAtStartOfDay();
+        DateTime nowInDefaultTimeZone = now.toDateTime(timeZone);
+        DateTime dateMinusOneMinute = nowInDefaultTimeZone.minusMinutes(1);
+        DateTime dateMinusOneHour = nowInDefaultTimeZone.minusHours(1);
+        DateTime startOfToday = nowInDefaultTimeZone.withTimeAtStartOfDay();
+        DateTime startOfYesterday = nowInDefaultTimeZone.minusDays(1).withTimeAtStartOfDay();
 
         if (dateInDefaultTimeZone.isAfter(dateMinusOneMinute)) {
             return "A l'instant";
         } else if (dateInDefaultTimeZone.isAfter(dateMinusOneHour)) {
-            int minutes = now.getMinuteOfDay() - dateInDefaultTimeZone.getMinuteOfDay();
+            int minutes = nowInDefaultTimeZone.getMinuteOfDay() - dateInDefaultTimeZone.getMinuteOfDay();
             return "Il y a " + minutes + " minute" + (minutes == 1 ? "" : "s");
         } else if (dateInDefaultTimeZone.isAfter(startOfToday)) {
             return dateInDefaultTimeZone.toString("HH:mm");
