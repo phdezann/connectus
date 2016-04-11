@@ -2,18 +2,16 @@ package controllers
 
 import javax.inject.Inject
 
-import conf.AppConf
 import common._
+import conf.AppConf
 import model.{Notification, _}
-import org.apache.commons.codec.binary.StringUtils
 import play.api.Logger
-import play.api.libs.json.Json
 import play.api.mvc._
 import services._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class AppController @Inject()(appConf: AppConf, messageService: MessageService, jobQueueActorClient: JobQueueActorClient, userActorInitializer: ActorsInitializer) extends Controller {
+class AppController @Inject()(appConf: AppConf, gmailHookClient: GmailHookClient, userActorInitializer: ActorsInitializer) extends Controller {
 
   def index = Action {
     Ok(views.html.index(null))
@@ -23,29 +21,17 @@ class AppController @Inject()(appConf: AppConf, messageService: MessageService, 
     fs(Ok)
   }
 
-  def gmail =
+  def gmail = {
     Action.async(BodyParsers.parse.json) { request =>
       val notificationResult = request.body.validate[Notification]
       Logger.info(s"Received gmail notification: $notificationResult")
       notificationResult.fold(errors => {
         Logger.error(errors.toString)
         fs(PreconditionFailed)
-      }, notification =>
-        if (notification.subscription != appConf.getGmailSubscription) {
-          fs(PreconditionFailed)
-        } else {
-          val base64Payload = notification.message.data
-          val jsonPayload = StringUtils.newStringUtf8(org.apache.commons.codec.binary.Base64.decodeBase64(base64Payload))
-          Json.fromJson[GmailNotificationMessage](Json.parse(jsonPayload)).fold(errors => {
-            Logger.error(errors.toString)
-            fs(PreconditionFailed)
-          }, gmailMessage => {
-            val email = gmailMessage.emailAddress
-            Logger.info(s"Initiating tagInbox for $email")
-            jobQueueActorClient.schedule(email, messageService.tagInbox(email))
-              .onSuccess { case result => Logger.info(s"Result of tagging inbox after gmail notification $result") }
-            fs(Ok)
-          })
-        })
+      }, notification => {
+        gmailHookClient.parse(notification).onSuccess { case result => Logger.info(s"Result of tagging inbox after gmail notification $result") }
+        fs(Ok)
+      })
     }
+  }
 }
