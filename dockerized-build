@@ -19,7 +19,7 @@ docker run                               \
     -v $(pwd):/workspace                 \
     -w /workspace/connectus-backend      \
     connectus-build                      \
-    sbt stage
+    sbt test stage
 docker run                                                \
     -it --rm                                              \
     --volumes-from connectus-build-cache                  \
@@ -27,4 +27,4 @@ docker run                                                \
     -v $(pwd):/workspace                                  \
     -w /workspace/connectus-android-app                   \
     connectus-build                                       \
-    /bin/bash -c "init-emulator && ./gradlew connectedAndroidTest"
+    /bin/bash -c "init-emulator && ./gradlew test connectedAndroidTest"
