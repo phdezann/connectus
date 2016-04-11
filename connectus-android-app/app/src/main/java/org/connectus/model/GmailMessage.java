@@ -19,6 +19,7 @@ public class GmailMessage {
     String date;
     Resident resident;
     Map<String, String> labels = Maps.newHashMap();
+    Map<String, GmailAttachment> attachments = Maps.newHashMap();
 
     public DateTime getParsedDate() {
         DateTimeFormatter parser = ISODateTimeFormat.dateTimeParser();

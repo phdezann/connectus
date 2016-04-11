@@ -3,7 +3,7 @@ package services
 import javax.inject.{Inject, Singleton}
 
 import common._
-import model.{GmailLabel, OutboxMessage, Resident, ThreadBundle}
+import model.{AttachmentRequest, GmailLabel, GmailMessage, OutboxMessage, Resident, ThreadBundle}
 import play.api.Logger
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -98,4 +98,9 @@ class MessageService @Inject()(mailClient: MailClient, labelService: LabelServic
       _ <- repository.deleteOutboxMessage(email, outboxMessage.id)
       _ <- tagInbox(email)
     } yield ()
+
+
+  def prepareRequest(email: Email, attachmentRequest: AttachmentRequest): Future[Unit] =
+    mailClient.getMessage(email, attachmentRequest.messageId, List())
+      .flatMap(freshMessage => repository.saveAttachmentResponse(email, freshMessage))
 }

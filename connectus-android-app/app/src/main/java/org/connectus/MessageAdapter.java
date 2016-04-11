@@ -6,8 +6,13 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 import com.firebase.client.Firebase;
 import com.firebase.ui.FirebaseListAdapter;
-import org.apache.commons.lang3.StringUtils;
+import org.connectus.model.AttachmentHttpRequest;
 import org.connectus.model.GmailMessage;
+import rx.Observable;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.schedulers.Schedulers;
+
+import java.util.List;
 
 public class MessageAdapter extends FirebaseListAdapter<GmailMessage> {
 
@@ -15,10 +20,14 @@ public class MessageAdapter extends FirebaseListAdapter<GmailMessage> {
     private static final int RIGHT_TYPE = 1;
 
     private Activity activity;
+    private FirebaseFacade firebaseFacade;
+    private UserRepository userRepository;
 
-    public MessageAdapter(Activity activity, Class<GmailMessage> modelClass, Firebase ref) {
+    public MessageAdapter(Activity activity, Class<GmailMessage> modelClass, Firebase ref, UserRepository userRepository, FirebaseFacade firebaseFacade) {
         super(activity, modelClass, 0, ref);
         this.activity = activity;
+        this.userRepository = userRepository;
+        this.firebaseFacade = firebaseFacade;
     }
 
     @Override
@@ -55,6 +64,15 @@ public class MessageAdapter extends FirebaseListAdapter<GmailMessage> {
         TextView content = (TextView) view.findViewById(R.id.content);
 
         subject.setText(DateFormatter.toPrettyString(gmailMessage.getParsedDate()));
-        content.setText(StringUtils.abbreviate(gmailMessage.getContent(), 50));
+        content.setText(gmailMessage.getAttachments().keySet().toString());
+
+        Firebase ref = getRef(position);
+
+        if (!gmailMessage.getAttachments().isEmpty()) {
+            Observable<List<AttachmentHttpRequest>> requests = firebaseFacade.getAttachmentRequests(FirebaseFacade.encode(userRepository.getUserEmail()), ref.getKey());
+            requests.subscribeOn(Schedulers.io()) //
+                    .observeOn(AndroidSchedulers.mainThread()) //
+                    .subscribe(ar -> System.out.println(ar));
+        }
     }
 }

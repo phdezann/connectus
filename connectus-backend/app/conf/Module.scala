@@ -34,9 +34,12 @@ class AkkaModule extends AbstractModule with AkkaGuiceSupport {
     bindActor[ResidentActor](ResidentActor.actorName)
     bindActor[ContactActor](ContactActor.actorName)
     bindActor[OutboxActor](OutboxActor.actorName)
+    bindActor[AttachmentActor](AttachmentActor.actorName)
     bindActorFactory[ResidentListenerActor, ResidentListenerActor.Factory]
     bindActorFactory[ContactListenerActor, ContactListenerActor.Factory]
     bindActorFactory[OutboxListenerActor, OutboxListenerActor.Factory]
+    bindActorFactory[OutboxListenerActor, OutboxListenerActor.Factory]
+    bindActorFactory[AttachmentListenerActor, AttachmentListenerActor.Factory]
   }
 }
 

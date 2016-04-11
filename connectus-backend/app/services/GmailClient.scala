@@ -138,6 +138,13 @@ class GmailClient @Inject()(appConf: AppConf, googleAuthorization: GoogleAuthori
     seq[Gmail#Users#Messages#Get, Message](messagesRequests, gmailThrottlerClient.scheduleGetMessage(userId, _))
   }
 
+  def getMessage(userId: String, messageId: String): Future[Message] =
+    for {
+      gmail <- googleAuthorization.getService(userId)
+      partialMessage = new Message().setId(messageId)
+      messages <- getMessage(userId, gmail, partialMessage)
+    } yield messages
+
   private def getMessage(userId: String, gmail: Gmail, partialMessage: Message): Future[Message] = {
     val request = gmail.users.messages.get(userId, partialMessage.getId)
     gmailThrottlerClient.scheduleGetMessage(userId, request)

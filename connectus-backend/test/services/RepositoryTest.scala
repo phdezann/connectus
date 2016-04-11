@@ -51,7 +51,7 @@ class RepositoryTest extends TestBase {
   }
 
   test("find deleted messages") {
-    val messages = List(GmailMessage(threadId1Message2Id, None, None, None, None, None, 0, List(), true))
+    val messages = List(GmailMessage(threadId1Message2Id, None, None, None, None, None, 0, List(), List(), true))
     val adminThreadIds = Map(Thread1Id -> List(threadId1Message1Id, threadId1Message2Id))
     val threadBundles = List(ThreadBundle(thread1, messages))
 
@@ -60,7 +60,7 @@ class RepositoryTest extends TestBase {
   }
 
   test("find deleted threads") {
-    val messages = List(GmailMessage(threadId2Message1Id, None, None, None, None, None, 0, List(), true))
+    val messages = List(GmailMessage(threadId2Message1Id, None, None, None, None, None, 0, List(), List(), true))
     val adminThreadIds = Map(Thread1Id -> List(threadId1Message1Id, threadId1Message2Id))
     val threadBundles = List(ThreadBundle(thread2, messages))
 
@@ -69,7 +69,7 @@ class RepositoryTest extends TestBase {
   }
 
   test("save threads to empty database") {
-    val message = GmailMessage(threadId2Message1Id, None, None, None, None, None, 0, List(), true)
+    val message = GmailMessage(threadId2Message1Id, None, None, None, None, None, 0, List(), List(), true)
     val threadBundles = List(ThreadBundle(thread2, List(message)))
     val messageSnapshot = MessagesSnapshot()
 
@@ -94,8 +94,8 @@ class RepositoryTest extends TestBase {
   }
 
   test("save threads to empty database with two residents") {
-    val message1 = GmailMessage(threadId1Message1Id, None, None, None, None, None, 0, List(residentLabels(roger)), true)
-    val message2 = GmailMessage(threadId2Message1Id, None, None, None, None, None, 0, List(residentLabels(robert)), true)
+    val message1 = GmailMessage(threadId1Message1Id, None, None, None, None, None, 0, List(residentLabels(roger)), List(), true)
+    val message2 = GmailMessage(threadId2Message1Id, None, None, None, None, None, 0, List(residentLabels(robert)), List(), true)
     val threadBundles = List(ThreadBundle(thread1, List(message1)), ThreadBundle(thread2, List(message2)))
     val messageSnapshot = MessagesSnapshot()
 
@@ -184,7 +184,7 @@ class RepositoryTest extends TestBase {
 
   test("save threads with a removed thread") {
     val thread = GmailThread(Thread2Id, "", 0)
-    val message = GmailMessage(threadId2Message1Id, None, None, None, None, None, 0, List(residentLabels(robert)), true)
+    val message = GmailMessage(threadId2Message1Id, None, None, None, None, None, 0, List(residentLabels(robert)), List(), true)
     val threadBundles = List(ThreadBundle(thread, List(message)))
     val messageSnapshot = MessagesSnapshot(allThreadIds = Map[ThreadId, List[MessageId]](Thread1Id -> List(threadId1Message1Id)))
 
@@ -240,7 +240,7 @@ class RepositoryTest extends TestBase {
   }
 
   test("save threads with a removed message") {
-    val message = GmailMessage(threadId1Message2Id, None, None, None, None, None, 0, List(residentLabels(roger)), true)
+    val message = GmailMessage(threadId1Message2Id, None, None, None, None, None, 0, List(residentLabels(roger)), List(), true)
     val threadBundles = List(ThreadBundle(thread1, List(message)))
     val messageSnapshot = MessagesSnapshot(allThreadIds = Map(Thread1Id -> List(threadId1Message1Id, threadId1Message2Id)))
 
@@ -292,7 +292,7 @@ class RepositoryTest extends TestBase {
   }
 
   test("update labels") {
-    val message = GmailMessage(threadId1Message2Id, None, None, None, None, None, 0, List(residentLabels(robert)), true)
+    val message = GmailMessage(threadId1Message2Id, None, None, None, None, None, 0, List(residentLabels(robert)), List(), true)
     val threadBundles = List(ThreadBundle(thread1, List(message)))
     val messageSnapshot = MessagesSnapshot(messagesLabels = Map(threadId1Message2Id -> List(residentLabels(roger))))
 
@@ -347,7 +347,7 @@ class RepositoryTest extends TestBase {
 
   test("save emails of contacts in thread summary") {
     val contactEmail = "contact1@provider.com"
-    val message = GmailMessage(threadId1Message1Id, None, Some(InternetAddress(contactEmail, None)), Some(InternetAddress(accountId, None)), None, None, 0, List(residentLabels(roger)), true)
+    val message = GmailMessage(threadId1Message1Id, None, Some(InternetAddress(contactEmail, None)), Some(InternetAddress(accountId, None)), None, None, 0, List(residentLabels(roger)), List(), true)
     val threadBundles = List(ThreadBundle(thread1, List(message)))
     val messageSnapshot = MessagesSnapshot(messagesLabels = Map(threadId1Message2Id -> List(residentLabels(roger))))
 

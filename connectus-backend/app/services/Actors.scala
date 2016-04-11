@@ -8,11 +8,10 @@ import akka.util.Timeout
 import com.google.inject.Provider
 import com.google.inject.assistedinject.Assisted
 import common._
-import model.{Contact, OutboxMessage, Resident}
+import model.{AttachmentRequest, Contact, OutboxMessage, Resident}
 import play.api.Logger
 import play.api.libs.concurrent.InjectedActorSupport
 import services.JobQueueActor.Job
-import services.OutboxActor.OutboxMessageAdded
 import services.Repository.AuthorizationCodes
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -50,16 +49,18 @@ object UserActors {
   case class UserRemoved(email: Email)
   case class GetJobQueueActor(email: Email)
   case class GetGmailThrottlerActorActor(email: Email)
-  case class UserActorRefs(residentListenerActor: ActorRef, contactListenerActor: ActorRef, gmailWatcherActor: ActorRef, jobQueueActor: ActorRef, gmailThrottlerActor: ActorRef, outboxListenerActor: ActorRef)
+  case class UserActorRefs(residentListenerActor: ActorRef, contactListenerActor: ActorRef, gmailWatcherActor: ActorRef, jobQueueActor: ActorRef, gmailThrottlerActor: ActorRef, outboxListenerActor: ActorRef, attachmentListenerActor: ActorRef)
 }
 
 class UserActors @Inject()(residentListenerActorFactory: ResidentListenerActor.Factory,
                            contactListenerActorFactory: ContactListenerActor.Factory,
                            outboxListenerActorFactory: OutboxListenerActor.Factory,
+                           attachmentListenerActorFactory: AttachmentListenerActor.Factory,
                            @Named(GmailWatcherActor.actorName) gmailWatcherActorProvider: Provider[ActorRef],
                            @Named(JobQueueActor.actorName) jobQueueActorProvider: Provider[ActorRef],
                            @Named(GmailThrottlerActor.actorName) gmailThrottlerActorProvider: Provider[ActorRef],
                            @Named(OutboxActor.actorName) outboxActorProvider: Provider[ActorRef],
+                           @Named(AttachmentActor.actorName) attachmentActorProvider: Provider[ActorRef],
                            jobQueueActorClient: JobQueueActorClient,
                            repository: Repository,
                            messageService: MessageService,
@@ -88,11 +89,12 @@ class UserActors @Inject()(residentListenerActorFactory: ResidentListenerActor.F
       val residentListenerActor = injectedChild(residentListenerActorFactory(email, jobQueueActor), s"${ResidentListenerActor.actorName}-$email")
       val contactListenerActor = injectedChild(contactListenerActorFactory(email), s"${ContactListenerActor.actorName}-$email")
       val outboxListenerActor = injectedChild(outboxListenerActorFactory(email), s"${OutboxListenerActor.actorName}-$email")
+      val attachmentListenerActor = injectedChild(attachmentListenerActorFactory(email), s"${AttachmentListenerActor.actorName}-$email")
       gmailWatcherActor ! GmailWatcherActor.StartWatch(email)
       jobQueueActorClient.schedule(email, messageService.tagInbox(email))
         .onSuccess { case result => Logger.info(s"Result of tagging inbox after new user setup $result") }
       val gmailThrottlerActor = gmailThrottlerActorProvider.get
-      jobQueues = jobQueues + ((email, UserActors.UserActorRefs(residentListenerActor, contactListenerActor, gmailWatcherActor, jobQueueActor, gmailThrottlerActor, outboxListenerActor)))
+      jobQueues = jobQueues + ((email, UserActors.UserActorRefs(residentListenerActor, contactListenerActor, gmailWatcherActor, jobQueueActor, gmailThrottlerActor, outboxListenerActor, attachmentListenerActor)))
     case UserActors.UserRemoved(email: Email) =>
       Logger.info(s"Removed user $email")
       val userActors = jobQueues(email)
@@ -207,7 +209,7 @@ object OutboxListenerActor {
 
 class OutboxListenerActor @Inject()(@Assisted email: Email, @Named(OutboxActor.actorName) outboxActor: ActorRef, repositoryListeners: RepositoryListeners) extends Actor with ActorLogging with InjectedActorSupport {
 
-  val listener = repositoryListeners.listenForOutboxMessages(email, outboxMessage => outboxActor ! OutboxMessageAdded(email, outboxMessage))
+  val listener = repositoryListeners.listenForOutboxMessages(email, outboxMessage => outboxActor ! OutboxActor.OutboxMessageAdded(email, outboxMessage))
 
   override def receive: Receive = {
     case OutboxListenerActor.Stop =>
@@ -226,6 +228,39 @@ class OutboxActor @Inject()(messageService: MessageService, jobQueueActorClient:
     case OutboxActor.OutboxMessageAdded(email, outboxMessage) =>
       jobQueueActorClient.schedule(email, messageService.reply(email, outboxMessage))
         .onSuccess { case result => Logger.info(s"Result of replying $result") }
+  }
+}
+
+object AttachmentListenerActor {
+  final val actorName = "attachmentListenerActor"
+  case object Stop
+
+  trait Factory {
+    def apply(email: Email): Actor
+  }
+}
+
+class AttachmentListenerActor @Inject()(@Assisted email: Email, @Named(AttachmentActor.actorName) attachmentActor: ActorRef, repositoryListeners: RepositoryListeners) extends Actor with ActorLogging with InjectedActorSupport {
+
+  val listener = repositoryListeners.listenForAttachmentRequests(email, attachmentRequest => attachmentActor ! AttachmentActor.AttachmentRequestAdded(email, attachmentRequest))
+
+  override def receive: Receive = {
+    case AttachmentListenerActor.Stop =>
+      listener.cancel
+      context.stop(self)
+  }
+}
+
+object AttachmentActor {
+  final val actorName = "attachmentActor"
+  case class AttachmentRequestAdded(email: Email, attachmentRequest: AttachmentRequest)
+}
+
+class AttachmentActor @Inject()(messageService: MessageService, jobQueueActorClient: JobQueueActorClient) extends JobQueueActor {
+  override def receive: Receive = {
+    case AttachmentActor.AttachmentRequestAdded(email, attachmentRequest) =>
+      jobQueueActorClient.schedule(email, messageService.prepareRequest(email, attachmentRequest))
+        .onSuccess { case result => Logger.info(s"Result of attachment request $result") }
   }
 }
 

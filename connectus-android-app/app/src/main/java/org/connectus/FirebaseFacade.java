@@ -2,18 +2,22 @@ package org.connectus;
 
 import com.firebase.client.*;
 import com.google.common.base.Optional;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.ToString;
 import org.apache.commons.lang3.StringUtils;
+import org.connectus.model.AttachmentHttpRequest;
 import org.connectus.support.NoOpObservable.NoOp;
 import rx.Observable;
+import rx.functions.Func1;
 import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
 import rx.subjects.ReplaySubject;
 
 import javax.inject.Inject;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -95,7 +99,7 @@ public class FirebaseFacade {
         Firebase reportRef = new Firebase(FirebaseFacadeConstants.getReportUrl(authorizationId));
 
         return updateChildren(push, values) // push AndroidId and AuthorizationCode to the server
-                .flatMap(ignore -> readIndefinitely(reportRef, FirebaseFacadeConstants.AUTHORIZATION_CODE_SERVER_PROCESSING_TIMEOUT_IN_SECONDS)) //
+                .flatMap(ignore -> waitForTokenTradeReport(reportRef, FirebaseFacadeConstants.SERVER_PROCESSING_TIMEOUT_IN_SECONDS)) //
                 .flatMap(report -> cleanup(authorizationIdRef).map(noOp -> report)) //
                 .flatMap(report -> checkErrors(creds, report)) //
                 .map(ignore -> noOp());
@@ -114,6 +118,21 @@ public class FirebaseFacade {
 
         Firebase newOutboxMessage = ref.push();
         return updateChildren(newOutboxMessage, values);
+    }
+
+    public Observable<List<AttachmentHttpRequest>> getAttachmentRequests(String email, String messageId) {
+        Firebase ref = new Firebase(FirebaseFacadeConstants.getAttachmentRequestUrl(email));
+
+        Map<String, Object> values = Maps.newHashMap();
+        values.put(messageId, "Active");
+
+        Firebase requestRef = ref.child("requests");
+        Firebase responseRef = ref.child("responses");
+
+        return updateChildren(requestRef, values) //
+                .flatMap(ignore -> waitForAttachmentRequests(responseRef, FirebaseFacadeConstants.SERVER_PROCESSING_TIMEOUT_IN_SECONDS)) //
+                .flatMap(response -> cleanup(requestRef).flatMap(noOp -> cleanup(responseRef)) //
+                        .map(noOp -> response));
     }
 
     private Observable<FirebaseFacade.TokenTradeReport> checkErrors(LoginOrchestrator.LoginCredentials creds, FirebaseFacade.TokenTradeReport tokenTradeReport) {
@@ -193,16 +212,41 @@ public class FirebaseFacade {
         return hopToIoScheduler(subject);
     }
 
-    private Observable<TokenTradeReport> readIndefinitely(Firebase ref, long timeoutInSeconds) {
-        PublishSubject<TokenTradeReport> subject = PublishSubject.create();
+    private Observable<TokenTradeReport> waitForTokenTradeReport(Firebase ref, long timeoutInSeconds) {
+        return readResponse(ref, snapshot -> {
+            Object codeValue = snapshot.child(FirebaseFacadeConstants.CODE_PATH).getValue();
+            Object messageValue = snapshot.child(FirebaseFacadeConstants.MESSAGE_PATH).getValue();
+            if (codeValue != null) {
+                return Optional.of(new TokenTradeReport((String) codeValue, Optional.fromNullable((String) messageValue)));
+            } else {
+                return Optional.absent();
+            }
+        }, timeoutInSeconds);
+    }
+
+    private Observable<List<AttachmentHttpRequest>> waitForAttachmentRequests(Firebase ref, long timeoutInSeconds) {
+        return readResponse(ref, snapshot -> {
+            if (snapshot.getValue() == null) {
+                return Optional.absent();
+            }
+            List<AttachmentHttpRequest> requests = Lists.newArrayList();
+            for (DataSnapshot child : snapshot.getChildren()) {
+                Object urlValue = child.child(FirebaseFacadeConstants.URL_PATH).getValue();
+                Object accessTokenValue = child.child(FirebaseFacadeConstants.ACCESS_TOKEN_PATH).getValue();
+                requests.add(new AttachmentHttpRequest((String) urlValue, (String) accessTokenValue));
+            }
+            return Optional.of(requests);
+        }, timeoutInSeconds);
+    }
+
+    private <T> Observable<T> readResponse(Firebase ref, Func1<DataSnapshot, Optional<T>> parser, long timeoutInSeconds) {
+        PublishSubject<T> subject = PublishSubject.create();
         ValueEventListener listener = new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                Object codeValue = dataSnapshot.child(FirebaseFacadeConstants.CODE_PATH).getValue();
-                Object messageValue = dataSnapshot.child(FirebaseFacadeConstants.MESSAGE_PATH).getValue();
-                if (codeValue != null) {
-                    TokenTradeReport report = new TokenTradeReport((String) codeValue, Optional.fromNullable((String) messageValue));
-                    subject.onNext(report);
+                Optional<T> value = parser.call(dataSnapshot);
+                if (value.isPresent()) {
+                    subject.onNext(value.get());
                     subject.onCompleted();
                 }
             }

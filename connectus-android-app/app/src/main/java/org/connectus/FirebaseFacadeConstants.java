@@ -3,7 +3,7 @@ package org.connectus;
 public class FirebaseFacadeConstants {
 
     public static String OAUTH_GOOGLE_PROVIDER = "google";
-    public static int AUTHORIZATION_CODE_SERVER_PROCESSING_TIMEOUT_IN_SECONDS = 10;
+    public static int SERVER_PROCESSING_TIMEOUT_IN_SECONDS = 10;
     public static int LOGIN_TIMEOUT_IN_SECONDS = 5;
     public static String LOGIN_CODE_SUCCESS = "SUCCESS";
     public static String LOGIN_CODE_INVALID_GRANT = "INVALID_GRANT";
@@ -11,6 +11,8 @@ public class FirebaseFacadeConstants {
     public static String AUTHORIZATION_CODE_PATH = "authorization_code";
     public static String CODE_PATH = "code";
     public static String MESSAGE_PATH = "message";
+    public static String URL_PATH = "url";
+    public static String ACCESS_TOKEN_PATH = "accessToken";
 
     public static String RESIDENT_ID_PROPERTY = "id";
     public static String RESIDENT_NAME_PROPERTY = "name";
@@ -62,5 +64,9 @@ public class FirebaseFacadeConstants {
 
     public static String getOutboxUrl(String encodedEmail) {
         return String.format("%s/outbox/%s", getRootUrl(), encodedEmail);
+    }
+
+    public static String getAttachmentRequestUrl(String encodedEmail) {
+        return String.format("%s/attachments/%s", getRootUrl(), encodedEmail);
     }
 }

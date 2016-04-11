@@ -9,7 +9,7 @@ import com.firebase.client.{DataSnapshot, Firebase}
 import com.google.api.client.auth.oauth2.TokenResponseException
 import com.google.common.base.Throwables
 import common._
-import model.{Contact, GmailLabel, GmailMessage, InternetAddress, OutboxMessage, Resident, ThreadBundle}
+import model.{AttachmentRequest, Contact, GmailLabel, GmailMessage, InternetAddress, OutboxMessage, Resident, ThreadBundle}
 import org.apache.commons.lang3.StringUtils
 import play.api.Logger
 import services.AccountInitializer.TradeSuccess
@@ -260,6 +260,13 @@ class Repository @Inject()(firebaseFutureWrappers: FirebaseFutureWrappers, appCo
       .map(currentLabels => currentLabels.filter(currentLabel => !message.labels.exists(_.id == currentLabel.id)))
       .map(_.map(label => s"$messagePath/labels/${label.id}" -> null).toMap)
       .fold(Map[String, AnyRef]())(identity)
+    val attachmentsAsMap = message.attachments.map { attachment => {
+      Map[String, AnyRef](
+        s"$messagePath/attachments/partId${attachment.partId}/mimeType" -> attachment.mimeType,
+        s"$messagePath/attachments/partId${attachment.partId}/filename" -> attachment.filename,
+        s"$messagePath/attachments/partId${attachment.partId}/bodySize" -> Int.box(attachment.bodySize))
+    }
+    }.flatten.toMap
     val residentAsMap = residentLabels
       .find { case (resident, label) =>
         message.labels.find(gmailLabel => gmailLabel.name == label.name).isDefined
@@ -275,12 +282,30 @@ class Repository @Inject()(firebaseFutureWrappers: FirebaseFutureWrappers, appCo
       s"$messagePath/date" -> Util.foldToBlank[ZonedDateTime](message.date, Util.formatDateWithIsoFormatter(_)),
       s"$messagePath/subject" -> Util.foldToBlank[String](message.subject, identity),
       s"$messagePath/content" -> Util.foldToBlank[String](message.content, identity))
-    labelsAsMap ++ labelsDeletionsAsMap ++ residentAsMap ++ messagesAsMap
+    labelsAsMap ++ labelsDeletionsAsMap ++ attachmentsAsMap ++ residentAsMap ++ messagesAsMap
   }
 
   def deleteOutboxMessage(email: Email, id: String) = {
     val url = s"${appConf.getFirebaseUrl}/${OutboxPath}/${Util.encode(email)}/${id}"
     firebaseFutureWrappers.setValueFuture(url, null)
+  }
+
+  def saveAttachmentResponse(email: Email, message: GmailMessage) = {
+    def buildValues(accessToken: String) = {
+      val clearRequest = Map(s"requests/${message.id}" -> null)
+      val attachmentsAsMap = message.attachments.flatMap { attachment =>
+        Map(
+          s"responses/partId${attachment.partId}/url" -> s"https://www.googleapis.com/gmail/v1/users/$email/messages/${message.id}/attachments/${attachment.bodyAttachmentId}",
+          s"responses/partId${attachment.partId}/accessToken" -> accessToken)
+      }.toMap
+      clearRequest ++ attachmentsAsMap
+    }
+    val url = s"${appConf.getFirebaseUrl}/attachments/${Util.encode(email)}"
+    for {
+      userCredential <- getCredentials(email)
+      values = buildValues(userCredential.accessToken)
+      _ <- firebaseFutureWrappers.updateChildrenFuture(url, values)
+    } yield ()
   }
 }
 
@@ -339,6 +364,17 @@ class RepositoryListeners @Inject()(firebaseFutureWrappers: FirebaseFutureWrappe
         val subject = snapshot.child("subject").getValue.asInstanceOf[String]
         val content = snapshot.child("content").getValue.asInstanceOf[String]
         onMessageAdded(OutboxMessage(id, residentId, threadId, to, personal, subject, content))
+      }
+    }
+    firebaseFutureWrappers.listenChildEvent(url, callback)
+  }
+
+  def listenForAttachmentRequests(email: Email, onAttachmentRequest: AttachmentRequest => Unit): FirebaseCancellable = {
+    val url = s"${appConf.getFirebaseUrl}/attachments/${Util.encode(email)}/requests"
+    def callback: (DataSnapshot) => Unit = {
+      snapshot => {
+        val messageId = snapshot.getKey
+        onAttachmentRequest(AttachmentRequest(messageId))
       }
     }
     firebaseFutureWrappers.listenChildEvent(url, callback)
