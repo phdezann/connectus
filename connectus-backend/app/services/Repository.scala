@@ -190,7 +190,7 @@ class Repository @Inject()(firebaseFutureWrappers: FirebaseFutureWrappers, appCo
       threadsDeletionValues ++ adminThreadValues ++ buildResidentThreadValues
     }.toMap
     val printableValues = TreeMap(values.toSeq: _*).mkString("\n")
-    Logger.debug(s"Saving values: \n$printableValues")
+    Logger.trace(s"Saving values: \n$printableValues")
     saveMessages(values)
   }
 
