@@ -13,7 +13,7 @@ case class GmailAttachment(partId: String, mimeType: String, filename: String, b
 case class GmailAttachmentData(attachmentId: String, data: Array[Byte], size: Int)
 case class InternetAddress(address: String, personal: Option[String])
 case class ThreadBundle(thread: GmailThread, messages: List[GmailMessage]) {
-  def lastUntrashedMessage = messages.reverse.find(message => !message.labels.exists(_.id == LabelService.TrashedLabelName))
+  def lastUntrashedMessage = messages.reverse.find(message => !message.labels.exists(_.id == LabelService.TrashLabelName))
   def contactEmail(email: Email): List[String] = messages
     .filter(message => message.from.fold(false)(_.address != email) && message.to.fold(false)(_.address == email))
     .map(_.from.get.address)

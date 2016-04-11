@@ -8,10 +8,10 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 object LabelService {
-  val InboxLabelName = "inbox"
+  val InboxLabelName = "INBOX"
   val ConnectusLabelName = "connectus"
   val AbsentLabelName = "query-returns-nothing"
-  val TrashedLabelName = "trashed"
+  val TrashLabelName = "TRASH"
 
   def allMessages =
     s"label:$InboxLabelName"

@@ -43,11 +43,11 @@ class RepositoryTest extends TestBase {
 
   test("buildContactQuery") {
     val contacts = List(Contact("contact1@provider.com", "roger"), Contact("contact2@provider.com", "robert"))
-    assert(LabelService.residentUntaggedMessages(contacts) == "label:inbox (from:contact1@provider.com OR from:contact2@provider.com)")
+    assert(LabelService.residentUntaggedMessages(contacts) == "label:INBOX (from:contact1@provider.com OR from:contact2@provider.com)")
   }
 
   test("buildContactQuery with empty contact list") {
-    assert(LabelService.residentUntaggedMessages(List()) == s"label:inbox label:${LabelService.AbsentLabelName}")
+    assert(LabelService.residentUntaggedMessages(List()) == s"label:INBOX label:${LabelService.AbsentLabelName}")
   }
 
   test("find deleted messages") {
