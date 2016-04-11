@@ -30,9 +30,9 @@ class MessageService @Inject()(mailClient: MailClient, labelService: LabelServic
         }
 
     def removeTrashedMessages(threadBundles: List[ThreadBundle]): List[ThreadBundle] =
-      threadBundles.map(threadBundle => threadBundle.copy(messages = threadBundle.messages.filter(!_.labels.contains(LabelService.TrashedLabelName))))
+      threadBundles.map(threadBundle => threadBundle.copy(messages = threadBundle.messages.filter(!_.labels.contains(LabelService.TrashLabelName))))
 
-    def doTagInbox(newHistoryId: BigInt): Future[Unit] = for {
+    def doTagInbox: Future[Unit] = for {
       allLabels <- labelService.listAllLabels(email)
       _ <- labelService.untagAll(email, allLabels)
       connectusLabel <- labelService.getOrCreateConnectusLabel(email, allLabels)
@@ -42,8 +42,9 @@ class MessageService @Inject()(mailClient: MailClient, labelService: LabelServic
       filteredThreadBundles = removeTrashedMessages(threadBundles)
       messagesSnapshot <- repository.getMessagesSnapshot(email)
       _ <- repository.saveThreads(email, filteredThreadBundles, messagesSnapshot, residentsLabels)
+      newHistoryId <- getLatestHistoryId(email)
     } yield {
-      historyIdOpt = Some(newHistoryId)
+      historyIdOpt = newHistoryId
     }
 
     def getLatestHistoryId(email: Email): Future[Option[BigInt]] = {
@@ -66,13 +67,13 @@ class MessageService @Inject()(mailClient: MailClient, labelService: LabelServic
       (ignoreHistoryId, historyIdOpt, latestHistoryIdOpt) match {
         case (true, _, Some(latestHistoryId)) =>
           Logger.info(s"Ignoring historyId, tagging the inbox with latestHistoryId ${latestHistoryId}")
-          doTagInbox(latestHistoryId)
+          doTagInbox
         case (false, None, Some(latestHistoryId)) =>
           Logger.info(s"No historyId saved from previous calls, tagging the inbox with latestHistoryId ${latestHistoryId}")
-          doTagInbox(latestHistoryId)
+          doTagInbox
         case (false, Some(historyId), Some(latestHistoryId)) if latestHistoryId > historyId =>
           Logger.info(s"historyId ${historyId} saved from previous calls is older than the current one ${latestHistoryId}, tagging the inbox")
-          doTagInbox(latestHistoryId)
+          doTagInbox
         case (false, Some(historyId), Some(latestHistoryId)) if historyId <= latestHistoryId =>
           Logger.info(s"historyId ${historyId} saved from previous calls and current one ${latestHistoryId} indicates that tagging the inbox can be skipped")
           fs(())
