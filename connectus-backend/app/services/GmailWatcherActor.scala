@@ -47,5 +47,8 @@ class GmailWatcherActor @Inject()(clock: Clock, mailClient: MailClient) extends 
       sender ! StopWatchDone
       Logger.info(s"StopWatch for $email")
       context.stop(self)
+    case Status.Failure(e) =>
+      Logger.error(s"Watch failed", e)
+      context.stop(self)
   }
 }
