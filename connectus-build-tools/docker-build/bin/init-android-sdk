@@ -1,0 +1,38 @@
+#!/bin/bash
+
+set -e
+
+if [ ! -d $ANDROID_SDK_HOME ]; then
+
+    cd /data
+    wget -q https://dl.google.com/android/android-sdk_r24.4.1-linux.tgz
+    tar xzf android-sdk_r24.4.1-linux.tgz
+    rm -f android-sdk_r24.4.1-linux.tgz
+
+    accept-all-licence                              \
+        android update sdk --all --no-ui --filter   \
+        \"                                          \
+        tool,                                       \
+        platform-tool,                              \
+        build-tools-23.0.3,                         \
+        android-19,                                 \
+        sys-img-armeabi-v7a-android-19,             \
+        sys-img-x86-android-19,                     \
+        addon-google_apis-google-19,                \
+        addon-google_apis_x86-google-19,            \
+        android-21,                                 \
+        sys-img-armeabi-v7a-google_apis-21,         \
+        sys-img-x86-google_apis-21,                 \
+        addon-google_apis-google-21,                \
+        android-23,                                 \
+        doc-23,                                     \
+        extra-android-m2repository,                 \
+        extra-google-m2repository,                  \
+        extra-android-support,                      \
+        extra-google-auto,                          \
+        extra-google-google_play_services,          \
+        extra-google-play_billing,                  \
+        extra-google-simulators,                    \
+        extra-google-webdriver                      \
+        \"
+fi

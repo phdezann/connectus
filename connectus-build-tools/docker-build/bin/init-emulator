@@ -1,0 +1,34 @@
+#!/bin/bash
+
+set -e
+
+function create-avd {
+  local AVD_FULL_NAME=${AVD_NAME}_${AVD_ARCH}
+  echo no | android create avd --force -n ${AVD_FULL_NAME} --target "${AVD_TARGET}" ${AVD_TAG_ABI}
+  mv $ANDROID_SDK_HOME/.android/avd/${AVD_FULL_NAME}.avd/config.ini ${ANDROID_SDK_HOME}/.android/avd/${AVD_FULL_NAME}.avd/config.ini.bck
+  cp $CONFIG_DIR/${AVD_ARCH}/config.ini ${ANDROID_SDK_HOME}/.android/avd/${AVD_FULL_NAME}.avd/config.ini
+  mksdcard 50M ${ANDROID_SDK_HOME}/.android/avd/${AVD_FULL_NAME}.avd/sdcard.img
+  emulator64-${AVD_ARCH} -no-boot-anim -avd ${AVD_FULL_NAME} $EMULATOR_ARGS &
+}
+
+function wait-for-lock-screen {
+  echo "Waiting for the android operating system to initialize itself"
+  while ! adb shell ps 2> /dev/null | grep com.android.music &> /dev/null
+  do
+    sleep 5
+    echo "."
+  done
+  echo "The emulator is now fully initialized"
+}
+
+CONFIG_FILE=$1
+CONFIG_DIR=$(dirname "$CONFIG_FILE")
+
+export LD_LIBRARY_PATH=${ANDROID_SDK_HOME}/tools/lib64/qt/lib:${ANDROID_SDK_HOME}/tools/lib64:$LD_LIBRARY_PATH
+source $CONFIG_FILE
+cp $CONFIG_DIR/../devices.xml ${ANDROID_SDK_HOME}/.android
+
+create-avd
+adb wait-for-device
+wait-for-lock-screen
+prepare && echo "All coach marks are removed"

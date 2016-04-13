@@ -13,7 +13,7 @@ docker run                                                                      
     -v $(pwd):/workspace                                                                               \
     -w /workspace/connectus-android-app                                                                \
     connectus-build                                                                                    \
-    ./gradlew publishApkRelease
+    ./gradlew --no-daemon publishApkRelease
 docker run                                                            \
     -it --rm                                                          \
     -e APPLICATION_FIREBASE_URL=$APPLICATION_FIREBASE_URL             \
