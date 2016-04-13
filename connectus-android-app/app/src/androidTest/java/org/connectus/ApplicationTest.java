@@ -1,18 +1,26 @@
 package org.connectus;
 
+import android.app.Activity;
+import android.graphics.Bitmap;
+import android.os.Environment;
 import android.support.test.InstrumentationRegistry;
 import android.support.test.espresso.Espresso;
 import android.test.ActivityInstrumentationTestCase2;
+import android.view.View;
+import com.google.common.base.Throwables;
 import dagger.Component;
 import dagger.Module;
 import dagger.Provides;
+import org.apache.commons.io.IOUtils;
 import org.connectus.dagger.AndroidModule;
 import org.connectus.dagger.ConnectusComponent;
 import org.connectus.support.RxJavaIdlingResource;
+import org.joda.time.LocalDateTime;
 import org.mockito.Mockito;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.io.*;
 
 import static android.support.test.espresso.Espresso.onView;
 import static android.support.test.espresso.assertion.ViewAssertions.matches;
@@ -25,6 +33,8 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
 
     @Inject
     EnvironmentHelper environmentHelper;
+
+    MainActivity activity;
 
     @Override
     public void setUp() throws Exception {
@@ -41,7 +51,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
         connectusApplication.setupComponent(component);
         component.inject(this);
 
-        getActivity();
+        activity = getActivity();
     }
 
     @Override
@@ -57,6 +67,31 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
     public void testUi() {
         Mockito.when(environmentHelper.isInTest()).thenReturn(true);
         onView(withId(R.id.login_with_google)).check(matches(isDisplayed()));
+    }
+
+    protected static void takeScreenshot(Activity activity) {
+        File picturesDirectory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
+        String date = LocalDateTime.now().toString("yyyy-MM-dd-HH-mm-ss");
+        File output = new File(picturesDirectory, date + ".png");
+
+        View scrView = activity.getWindow().getDecorView().getRootView();
+        scrView.setDrawingCacheEnabled(true);
+
+        Bitmap bitmap = Bitmap.createBitmap(scrView.getDrawingCache());
+        scrView.setDrawingCacheEnabled(false);
+
+        OutputStream out = null;
+        try {
+            out = new FileOutputStream(output);
+            bitmap.compress(Bitmap.CompressFormat.PNG, 90, out);
+            out.flush();
+        } catch (FileNotFoundException e) {
+            Throwables.propagate(e);
+        } catch (IOException e) {
+            Throwables.propagate(e);
+        } finally {
+            IOUtils.closeQuietly(out);
+        }
     }
 
     @Component(modules = {MocksModule.class, AndroidModule.class})
