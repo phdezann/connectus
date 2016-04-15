@@ -46,6 +46,7 @@ ADD conf/m2/settings.xml /home/connectus/.m2/
 ADD bin/accept-all-licence /usr/local/bin/
 ADD bin/init-android-sdk /usr/local/bin/
 ADD bin/init-emulator /usr/local/bin/
+ADD bin/debug-connected-android-test /usr/local/bin/
 ADD bin/deploy-to-heroku /usr/local/bin/
 ADD bin/upload-release-description /usr/local/bin/
 

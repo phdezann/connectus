@@ -1,0 +1,29 @@
+#!/bin/bash
+
+function take-screenshot {
+    local SUFFIX=$1
+    adb shell screencap -p /sdcard/screenshot.png &>> $LOG_FILE
+    adb pull /sdcard/screenshot.png $DATA_DIR/screenshot-$TIMESTAMP-$SUFFIX.png &>> $LOG_FILE
+}
+
+function dump-logcat {
+    adb logcat -d > $DATA_DIR/logcat-$TIMESTAMP.txt
+    adb logcat -c
+}
+
+TIMESTAMP=$(date +%Y-%m-%d-%H-%M-%S)
+DATA_DIR=/data/debug-test
+LOG_FILE=$DATA_DIR/debug.log
+
+mkdir -p $DATA_DIR
+take-screenshot before
+./gradlew --no-daemon test connectedAndroidTest
+GRADLE_RESULT=$?
+take-screenshot after
+dump-logcat
+
+if [ $GRADLE_RESULT -ne 0 ]; then
+    echo "Gradle returned an error, checkout the logs with the timestamp $TIMESTAMP"
+fi
+
+exit $GRADLE_RESULT
