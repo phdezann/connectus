@@ -192,7 +192,7 @@ object ContactActor {
 class ContactActor @Inject()(messageService: MessageService, jobQueueActorClient: JobQueueActorClient) extends JobQueueActor {
   override def receive: Receive = {
     case ContactActor.AllContacts(email, contacts) =>
-      jobQueueActorClient.schedule(email, messageService.tagInbox(email))
+      jobQueueActorClient.schedule(email, messageService.tagInbox(email, true), Some("contact"))
         .onSuccess { case result => Logger.info(s"Result of tagging inbox after contact modification $result") }
   }
 }
@@ -267,7 +267,7 @@ class AttachmentActor @Inject()(messageService: MessageService, jobQueueActorCli
 class JobQueueActorClient @Inject()(userActorClient: UserActorClient) {
   implicit val timeout = Timeouts.oneMinute
 
-  def schedule(email: Email, job: => Future[_]): Future[Try[_]] =
+  def schedule(email: Email, job: => Future[_], key: Option[String] = None): Future[Try[_]] =
     userActorClient.getJobQueueActor(email)
-      .flatMap(_ ? Job(() => job)).mapTo[Try[_]]
+      .flatMap(_ ? Job(() => job, key)).mapTo[Try[_]]
 }
