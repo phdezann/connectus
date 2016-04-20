@@ -20,7 +20,7 @@ import org.robolectric.RuntimeEnvironment;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-public class MainActivityTest extends RobolectricTestBase {
+public class LoginActivityTest extends RobolectricTestBase {
 
     @Inject
     GoogleAuthUtilWrapper googleAuthUtilWrapper;
@@ -38,7 +38,7 @@ public class MainActivityTest extends RobolectricTestBase {
     @Before
     public void setup() {
         ConnectusApplication connectusApplication = (ConnectusApplication) RuntimeEnvironment.application;
-        ConnectusTestComponent component = DaggerMainActivityTest_ConnectusTestComponent.builder().mocksModule(new MocksModule()).androidModule(new AndroidModule(connectusApplication)).build();
+        ConnectusTestComponent component = DaggerLoginActivityTest_ConnectusTestComponent.builder().mocksModule(new MocksModule()).androidModule(new AndroidModule(connectusApplication)).build();
         connectusApplication.setupComponent(component);
         component.inject(this);
         setupHook();
@@ -46,8 +46,8 @@ public class MainActivityTest extends RobolectricTestBase {
 
     @Test
     public void userDismissPickAccount() {
-        MainActivity activity = Robolectric.setupActivity(MainActivity.class);
-        activity.onActivityResult(MainActivity.RC_GOOGLE_LOGIN, Activity.RESULT_CANCELED, null);
+        LoginActivity activity = Robolectric.setupActivity(LoginActivity.class);
+        activity.onActivityResult(LoginActivity.RC_GOOGLE_LOGIN, Activity.RESULT_CANCELED, null);
 
         flush();
         Mockito.verify(toaster).toast(Mockito.anyString());
@@ -55,8 +55,8 @@ public class MainActivityTest extends RobolectricTestBase {
 
     @Test
     public void userDenyOAuthPermissions() {
-        MainActivity activity = Robolectric.setupActivity(MainActivity.class);
-        activity.onActivityResult(MainActivity.OAUTH_PERMISSIONS, Activity.RESULT_CANCELED, null);
+        LoginActivity activity = Robolectric.setupActivity(LoginActivity.class);
+        activity.onActivityResult(LoginActivity.OAUTH_PERMISSIONS, Activity.RESULT_CANCELED, null);
 
         flush();
         Mockito.verify(toaster).toast(Mockito.anyString());
@@ -64,7 +64,7 @@ public class MainActivityTest extends RobolectricTestBase {
 
     @Test
     public void userAcceptOAuthPermissions() {
-        MainActivity activity = Robolectric.setupActivity(MainActivity.class);
+        LoginActivity activity = Robolectric.setupActivity(LoginActivity.class);
 
         Mockito.when(environmentHelper.isInTest()).thenReturn(true);
         Mockito.when(loginOrchestrator.secondPassSetupOfflineAccess(Mockito.anyString(), Mockito.anyString())).thenReturn(NoOpObservable.justNoOp());
@@ -73,7 +73,7 @@ public class MainActivityTest extends RobolectricTestBase {
         Intent intent = new Intent();
         intent.putExtra(AccountManager.KEY_ACCOUNT_NAME, Constants.FAKE_GMAIL_COM);
         intent.putExtra(AccountManager.KEY_AUTHTOKEN, Constants.FAKE_AUTHORIZATION_CODE);
-        activity.onActivityResult(MainActivity.OAUTH_PERMISSIONS, Activity.RESULT_OK, intent);
+        activity.onActivityResult(LoginActivity.OAUTH_PERMISSIONS, Activity.RESULT_OK, intent);
 
         flush();
         Mockito.verify(toaster).toast(Mockito.anyString());
@@ -82,7 +82,7 @@ public class MainActivityTest extends RobolectricTestBase {
     @Component(modules = {MocksModule.class, AndroidModule.class})
     @Singleton
     protected interface ConnectusTestComponent extends ConnectusComponent {
-        void inject(MainActivityTest licenseTest);
+        void inject(LoginActivityTest licenseTest);
     }
 
     @Module

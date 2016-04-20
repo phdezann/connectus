@@ -28,14 +28,14 @@ import static android.support.test.espresso.assertion.ViewAssertions.matches;
 import static android.support.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static android.support.test.espresso.matcher.ViewMatchers.withId;
 
-public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivity> {
+public class ApplicationTest extends ActivityInstrumentationTestCase2<LoginActivity> {
 
     RxJavaIdlingResource rxJavaIdlingResource;
 
     @Inject
     EnvironmentHelper environmentHelper;
 
-    MainActivity activity;
+    LoginActivity activity;
 
     @Override
     public void setUp() throws Exception {
@@ -62,7 +62,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
     }
 
     public ApplicationTest() {
-        super(MainActivity.class);
+        super(LoginActivity.class);
     }
 
     public void testUi() {

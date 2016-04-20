@@ -1,6 +1,5 @@
 package org.connectus;
 
-import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.widget.ListView;
@@ -11,7 +10,7 @@ import org.connectus.model.Resident;
 
 import javax.inject.Inject;
 
-public class ResidentThreadListActivity extends Activity {
+public class ResidentThreadListActivity extends ActivityBase {
 
     public static final String RESIDENT_ID_ARG = "residentId";
 
@@ -24,7 +23,7 @@ public class ResidentThreadListActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         ((ConnectusApplication) getApplication()).getComponent().inject(this);
-        setContentView(R.layout.activity_login);
+        setContentView(R.layout.main);
 
         String residentId = getIntent().getStringExtra(RESIDENT_ID_ARG);
 
