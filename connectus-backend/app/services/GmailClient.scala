@@ -109,8 +109,7 @@ class GmailClient @Inject()(appConf: AppConf, googleAuthorization: GoogleAuthori
     val request = gmail.users.threads.list(userId).setQ(query)
     gmailThrottlerClient.scheduleListThreads(userId, request).map(response => {
       // ListThreadsResponse.getThreads can be null
-      val threadsOpt = Option(request.execute.getThreads)
-      threadsOpt.map(_.asScala.toList).fold(List[Thread]())(identity)
+      Option(response.getThreads).map(_.asScala.toList).fold(List[Thread]())(identity)
     })
   }
 
