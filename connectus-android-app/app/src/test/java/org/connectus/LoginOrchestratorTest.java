@@ -4,6 +4,7 @@ import android.accounts.Account;
 import android.content.Intent;
 import com.google.android.gms.auth.UserRecoverableAuthException;
 import com.google.common.base.Optional;
+import com.squareup.picasso.Picasso;
 import dagger.Component;
 import dagger.Module;
 import dagger.Provides;
@@ -113,6 +114,12 @@ public class LoginOrchestratorTest extends RobolectricTestBase {
         @Singleton
         public AccountManagerUtil provideAccountManagerUtil() {
             return Mockito.mock(AccountManagerUtil.class);
+        }
+
+        @Provides
+        @Singleton
+        public Picasso providePicassoBuilder() {
+            return Mockito.mock(Picasso.class);
         }
     }
 }

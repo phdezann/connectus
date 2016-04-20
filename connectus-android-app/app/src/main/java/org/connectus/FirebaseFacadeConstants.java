@@ -13,6 +13,7 @@ public class FirebaseFacadeConstants {
     public static String MESSAGE_PATH = "message";
     public static String URL_PATH = "url";
     public static String ACCESS_TOKEN_PATH = "accessToken";
+    public static String MIME_TYPE_PATH = "mimeType";
 
     public static String RESIDENT_ID_PROPERTY = "id";
     public static String RESIDENT_NAME_PROPERTY = "name";

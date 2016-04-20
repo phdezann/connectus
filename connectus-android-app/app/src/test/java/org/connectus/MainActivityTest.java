@@ -3,6 +3,7 @@ package org.connectus;
 import android.accounts.AccountManager;
 import android.app.Activity;
 import android.content.Intent;
+import com.squareup.picasso.Picasso;
 import dagger.Component;
 import dagger.Module;
 import dagger.Provides;
@@ -121,6 +122,12 @@ public class MainActivityTest extends RobolectricTestBase {
         @Singleton
         public EnvironmentHelper provideEnvironmentHelper() {
             return Mockito.mock(EnvironmentHelper.class);
+        }
+
+        @Provides
+        @Singleton
+        public Picasso providePicassoBuilder() {
+            return Mockito.mock(Picasso.class);
         }
     }
 }

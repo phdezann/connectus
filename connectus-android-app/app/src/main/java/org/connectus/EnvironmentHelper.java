@@ -12,6 +12,10 @@ public class EnvironmentHelper {
         return BuildConfig.BUILD_TYPE.equals("release");
     }
 
+    public boolean isNotReleaseBuildType() {
+        return !isReleaseBuildType();
+    }
+
     public boolean isInTest() {
         return false;
     }

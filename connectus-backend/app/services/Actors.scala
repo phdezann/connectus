@@ -259,7 +259,7 @@ object AttachmentActor {
 class AttachmentActor @Inject()(messageService: MessageService, jobQueueActorClient: JobQueueActorClient) extends JobQueueActor {
   override def receive: Receive = {
     case AttachmentActor.AttachmentRequestAdded(email, attachmentRequest) =>
-      jobQueueActorClient.schedule(email, messageService.prepareRequest(email, attachmentRequest))
+      messageService.prepareRequest(email, attachmentRequest)
         .onSuccess { case result => Logger.info(s"Result of attachment request $result") }
   }
 }

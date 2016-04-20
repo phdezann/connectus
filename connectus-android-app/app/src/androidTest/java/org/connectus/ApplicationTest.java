@@ -8,6 +8,7 @@ import android.support.test.espresso.Espresso;
 import android.test.ActivityInstrumentationTestCase2;
 import android.view.View;
 import com.google.common.base.Throwables;
+import com.squareup.picasso.Picasso;
 import dagger.Component;
 import dagger.Module;
 import dagger.Provides;
@@ -108,5 +109,12 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
         public EnvironmentHelper provideEnvironmentHelper() {
             return Mockito.mock(EnvironmentHelper.class);
         }
+
+        @Provides
+        @Singleton
+        public Picasso providePicassoBuilder() {
+            return Mockito.mock(Picasso.class);
+        }
+
     }
 }

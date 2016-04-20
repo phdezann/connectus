@@ -47,7 +47,7 @@ public class ThreadActivity extends Activity {
         messagesListView = (ListView) findViewById(R.id.list_view_message);
 
         Firebase ref = new Firebase(FirebaseFacadeConstants.getResidentMessagesOfThreadUrl(FirebaseFacade.encode(userRepository.getUserEmail()), residentId, threadId));
-        adapter = new MessageAdapter(this, GmailMessage.class, ref, userRepository, firebaseFacade);
+        adapter = new MessageAdapter(this, GmailMessage.class, ref, userRepository, firebaseFacade, threadId);
         messagesListView.setAdapter(adapter);
 
         adapter.registerDataSetObserver(new DataSetObserver() {

@@ -1,12 +1,16 @@
 package org.connectus;
 
 import android.app.Activity;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 import com.firebase.client.Firebase;
 import com.firebase.ui.FirebaseListAdapter;
-import org.connectus.model.AttachmentHttpRequest;
+import com.google.common.collect.FluentIterable;
+import org.apache.commons.lang3.StringUtils;
+import org.connectus.model.AttachmentFirebaseHttpRequest;
 import org.connectus.model.GmailMessage;
 import rx.Observable;
 import rx.android.schedulers.AndroidSchedulers;
@@ -22,12 +26,14 @@ public class MessageAdapter extends FirebaseListAdapter<GmailMessage> {
     private Activity activity;
     private FirebaseFacade firebaseFacade;
     private UserRepository userRepository;
+    private String threadId;
 
-    public MessageAdapter(Activity activity, Class<GmailMessage> modelClass, Firebase ref, UserRepository userRepository, FirebaseFacade firebaseFacade) {
+    public MessageAdapter(Activity activity, Class<GmailMessage> modelClass, Firebase ref, UserRepository userRepository, FirebaseFacade firebaseFacade, String threadId) {
         super(activity, modelClass, 0, ref);
         this.activity = activity;
         this.userRepository = userRepository;
         this.firebaseFacade = firebaseFacade;
+        this.threadId = threadId;
     }
 
     @Override
@@ -60,19 +66,31 @@ public class MessageAdapter extends FirebaseListAdapter<GmailMessage> {
 
     @Override
     protected void populateView(View view, GmailMessage gmailMessage, int position) {
-        TextView subject = (TextView) view.findViewById(R.id.date);
+        TextView date = (TextView) view.findViewById(R.id.date);
         TextView content = (TextView) view.findViewById(R.id.content);
 
-        subject.setText(DateFormatter.toPrettyString(gmailMessage.getParsedDate()));
-        content.setText(gmailMessage.getAttachments().keySet().toString());
+        date.setText(DateFormatter.toPrettyString(gmailMessage.getParsedDate()));
+        content.setText(StringUtils.abbreviate(gmailMessage.getContent(), 50));
 
         Firebase ref = getRef(position);
+        String messageId = ref.getKey();
+
+        RecyclerView recyclerView = (RecyclerView) view.findViewById(R.id.attachments);
+        recyclerView.setLayoutManager(new LinearLayoutManager(activity, LinearLayoutManager.HORIZONTAL, false));
+
+        AttachmentHttpAdapter attachmentArrayAdapter = new AttachmentHttpAdapter(activity, threadId, messageId);
+        recyclerView.setAdapter(attachmentArrayAdapter);
 
         if (!gmailMessage.getAttachments().isEmpty()) {
-            Observable<List<AttachmentHttpRequest>> requests = firebaseFacade.getAttachmentRequests(FirebaseFacade.encode(userRepository.getUserEmail()), ref.getKey());
+            recyclerView.setVisibility(View.VISIBLE);
+            Observable<List<AttachmentFirebaseHttpRequest>> requests = firebaseFacade.getAttachmentRequests(FirebaseFacade.encode(userRepository.getUserEmail()), messageId);
             requests.subscribeOn(Schedulers.io()) //
                     .observeOn(AndroidSchedulers.mainThread()) //
-                    .subscribe(ar -> System.out.println(ar));
+                    .subscribe(ar -> {
+                        List<AttachmentFirebaseHttpRequest> attachments = FluentIterable.from(ar).filter(p -> p.getMimeType().contains("image/")).toList();
+                        attachmentArrayAdapter.setItems(attachments);
+                        attachmentArrayAdapter.notifyDataSetChanged();
+                    });
         }
     }
 }

@@ -8,7 +8,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.ToString;
 import org.apache.commons.lang3.StringUtils;
-import org.connectus.model.AttachmentHttpRequest;
+import org.connectus.model.AttachmentFirebaseHttpRequest;
 import org.connectus.support.NoOpObservable.NoOp;
 import rx.Observable;
 import rx.functions.Func1;
@@ -120,7 +120,7 @@ public class FirebaseFacade {
         return updateChildren(newOutboxMessage, values);
     }
 
-    public Observable<List<AttachmentHttpRequest>> getAttachmentRequests(String email, String messageId) {
+    public Observable<List<AttachmentFirebaseHttpRequest>> getAttachmentRequests(String email, String messageId) {
         Firebase ref = new Firebase(FirebaseFacadeConstants.getAttachmentRequestUrl(email));
 
         Map<String, Object> values = Maps.newHashMap();
@@ -224,16 +224,17 @@ public class FirebaseFacade {
         }, timeoutInSeconds);
     }
 
-    private Observable<List<AttachmentHttpRequest>> waitForAttachmentRequests(Firebase ref, long timeoutInSeconds) {
+    private Observable<List<AttachmentFirebaseHttpRequest>> waitForAttachmentRequests(Firebase ref, long timeoutInSeconds) {
         return readResponse(ref, snapshot -> {
             if (snapshot.getValue() == null) {
                 return Optional.absent();
             }
-            List<AttachmentHttpRequest> requests = Lists.newArrayList();
+            List<AttachmentFirebaseHttpRequest> requests = Lists.newArrayList();
             for (DataSnapshot child : snapshot.getChildren()) {
                 Object urlValue = child.child(FirebaseFacadeConstants.URL_PATH).getValue();
                 Object accessTokenValue = child.child(FirebaseFacadeConstants.ACCESS_TOKEN_PATH).getValue();
-                requests.add(new AttachmentHttpRequest((String) urlValue, (String) accessTokenValue));
+                Object mimeType = child.child(FirebaseFacadeConstants.MIME_TYPE_PATH).getValue();
+                requests.add(new AttachmentFirebaseHttpRequest((String) urlValue, (String) accessTokenValue, (String) mimeType));
             }
             return Optional.of(requests);
         }, timeoutInSeconds);

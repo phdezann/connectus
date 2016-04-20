@@ -131,6 +131,8 @@ dependencies {
             'org.apache.commons:commons-lang3:3.4',
             'io.reactivex:rxjava:1.0.15',
             'io.reactivex:rxandroid:1.0.1',
+            'com.squareup.picasso:picasso:2.5.2',
+            'com.jakewharton.picasso:picasso2-okhttp3-downloader:1.0.2',
             "com.google.dagger:dagger:${DAGGER_VERSION}",
             'javax.annotation:javax.annotation-api:1.2',
             'org.slf4j:slf4j-jdk14:1.7.12',

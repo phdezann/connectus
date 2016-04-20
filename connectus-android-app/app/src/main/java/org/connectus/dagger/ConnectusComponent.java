@@ -14,4 +14,6 @@ public interface ConnectusComponent {
     void inject(ResidentThreadListActivity residentThreadListActivity);
 
     void inject(ThreadActivity threadActivity);
+
+    void inject(AttachmentHttpAdapter attachmentHttpAdapter);
 }

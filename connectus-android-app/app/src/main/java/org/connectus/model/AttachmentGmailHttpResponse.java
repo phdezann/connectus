@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Data
-public class AttachmentHttpRequest {
-    String url;
-    String accessToken;
+public class AttachmentGmailHttpResponse {
+    int size;
+    String data;
 }

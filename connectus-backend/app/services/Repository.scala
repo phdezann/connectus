@@ -296,7 +296,8 @@ class Repository @Inject()(firebaseFutureWrappers: FirebaseFutureWrappers, appCo
       val attachmentsAsMap = message.attachments.flatMap { attachment =>
         Map(
           s"responses/partId${attachment.partId}/url" -> s"https://www.googleapis.com/gmail/v1/users/$email/messages/${message.id}/attachments/${attachment.bodyAttachmentId}",
-          s"responses/partId${attachment.partId}/accessToken" -> accessToken)
+          s"responses/partId${attachment.partId}/accessToken" -> accessToken,
+          s"responses/partId${attachment.partId}/mimeType" -> attachment.mimeType)
       }.toMap
       clearRequest ++ attachmentsAsMap
     }
