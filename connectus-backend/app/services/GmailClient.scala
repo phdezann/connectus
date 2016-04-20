@@ -104,10 +104,10 @@ class GmailClient @Inject()(appConf: AppConf, googleAuthorization: GoogleAuthori
     for {
       gmail <- googleAuthorization.getService(userId)
       request = gmail.users.threads.list(userId).setQ(query)
-      threads <- fetchThreads(userId, gmail, query)
+      threads <- listThreads(userId, gmail, query)
     } yield threads
 
-  private def fetchThreads(userId: String, gmail: Gmail, query: String): Future[List[Thread]] = {
+  private def listThreads(userId: String, gmail: Gmail, query: String): Future[List[Thread]] = {
     val request = gmail.users.threads.list(userId).setQ(query)
     foldListThreads(userId, request)
   }
@@ -121,11 +121,11 @@ class GmailClient @Inject()(appConf: AppConf, googleAuthorization: GoogleAuthori
   def listMessagesOfThread(userId: String, threadId: String): Future[List[Message]] =
     for {
       gmail <- googleAuthorization.getService(userId)
-      partialMessages <- fetchMessagesOfThread(userId, gmail, threadId)
+      partialMessages <- listMessagesOfThread(userId, gmail, threadId)
       messages <- getMessages(userId, gmail, partialMessages)
     } yield messages
 
-  private def fetchMessagesOfThread(userId: String, gmail: Gmail, threadId: String): Future[List[Message]] = {
+  private def listMessagesOfThread(userId: String, gmail: Gmail, threadId: String): Future[List[Message]] = {
     val request = gmail.users.threads.get(userId, threadId)
     gmailThrottlerClient.scheduleGetThread(userId, request).map(_.getMessages.asScala.toList)
   }
