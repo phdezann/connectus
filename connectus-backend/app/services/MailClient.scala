@@ -69,7 +69,7 @@ class MailClient @Inject()(gmailClient: GmailClient) {
 
   def getLastHistoryId(email: Email, startHistoryId: BigInt): Future[BigInt] = {
     Logger.info(s"Listing history with startHistoryId ${startHistoryId} for ${email}")
-    gmailClient.listHistory(email, startHistoryId).map(_.getHistoryId)
+    gmailClient.getLastHistory(email, startHistoryId).map(_.getHistoryId)
   }
 
   def getAttachment(email: Email, messageId: String, attachmentId: String): Future[GmailAttachmentData] = {

@@ -7,6 +7,7 @@ import javax.mail.Session
 import javax.mail.internet.{InternetAddress, MimeMessage}
 
 import conf.AppConf
+import common._
 import com.google.api.client.util.Base64
 import com.google.api.services.gmail.model._
 import com.google.api.services.gmail.{Gmail, GmailRequest}
@@ -102,16 +103,20 @@ class GmailClient @Inject()(appConf: AppConf, googleAuthorization: GoogleAuthori
   def listThreads(userId: String, query: String): Future[List[Thread]] =
     for {
       gmail <- googleAuthorization.getService(userId)
+      request = gmail.users.threads.list(userId).setQ(query)
       threads <- fetchThreads(userId, gmail, query)
     } yield threads
 
   private def fetchThreads(userId: String, gmail: Gmail, query: String): Future[List[Thread]] = {
     val request = gmail.users.threads.list(userId).setQ(query)
-    gmailThrottlerClient.scheduleListThreads(userId, request).map(response => {
-      // ListThreadsResponse.getThreads can be null
-      Option(response.getThreads).map(_.asScala.toList).fold(List[Thread]())(identity)
-    })
+    foldListThreads(userId, request)
   }
+
+  def foldListThreads(userId: String, request: Gmail#Users#Threads#List): Future[List[Thread]] =
+    foldPages[ListThreadsResponse, Thread](response => Option(response.getNextPageToken), _.getThreads, nextPageTokenOpt => {
+      nextPageTokenOpt.fold()(request.setPageToken(_))
+      gmailThrottlerClient.scheduleListThreads(userId, request)
+    })
 
   def listMessagesOfThread(userId: String, threadId: String): Future[List[Message]] =
     for {
@@ -151,10 +156,14 @@ class GmailClient @Inject()(appConf: AppConf, googleAuthorization: GoogleAuthori
 
   private def listMessages(userId: String, gmail: Gmail, query: String): Future[List[Message]] = {
     val request = gmail.users.messages.list(userId).setQ(query)
-    gmailThrottlerClient.scheduleListMessages(userId, request).map { response =>
-      if (response.getResultSizeEstimate > 0) response.getMessages.asScala.toList else List()
-    }
+    foldListMessages(userId, request)
   }
+
+  def foldListMessages(userId: String, request: Gmail#Users#Messages#List): Future[List[Message]] =
+    foldPages[ListMessagesResponse, Message](response => Option(response.getNextPageToken), _.getMessages, nextPageTokenOpt => {
+      nextPageTokenOpt.fold()(request.setPageToken(_))
+      gmailThrottlerClient.scheduleListMessages(userId, request)
+    })
 
   def reply(userId: String, threadId: String, toAddress: String, personal: String, subject: String, content: String): Future[Message] =
     for {
@@ -190,17 +199,35 @@ class GmailClient @Inject()(appConf: AppConf, googleAuthorization: GoogleAuthori
     new Message().setRaw(encodedEmail)
   }
 
-  def listHistory(userId: String, startHistoryId: BigInt): Future[ListHistoryResponse] =
+  def getLastHistory(userId: String, startHistoryId: BigInt): Future[ListHistoryResponse] =
+    for {
+      gmail <- googleAuthorization.getService(userId)
+      result <- lastHistory(userId, gmail, startHistoryId)
+    } yield result
+
+  private def lastHistory(userId: String, gmail: Gmail, startHistoryId: BigInt): Future[ListHistoryResponse] = {
+    val request = gmail.users.history().list(userId)
+    request.setStartHistoryId(startHistoryId.bigInteger)
+    gmailThrottlerClient.scheduleListHistory(userId, request)
+  }
+
+  def listHistory(userId: String, startHistoryId: BigInt): Future[List[History]] =
     for {
       gmail <- googleAuthorization.getService(userId)
       result <- listHistory(userId, gmail, startHistoryId)
     } yield result
 
-  private def listHistory(userId: String, gmail: Gmail, startHistoryId: BigInt): Future[ListHistoryResponse] = {
+  private def listHistory(userId: String, gmail: Gmail, startHistoryId: BigInt): Future[List[History]] = {
     val request = gmail.users.history().list(userId)
     request.setStartHistoryId(startHistoryId.bigInteger)
-    gmailThrottlerClient.scheduleListHistory(userId, request)
+    foldListHistory(userId, request)
   }
+
+  def foldListHistory(userId: String, request: Gmail#Users#History#List): Future[List[History]] =
+    foldPages[ListHistoryResponse, History](response => Option(response.getNextPageToken), _.getHistory, nextPageTokenOpt => {
+      nextPageTokenOpt.fold()(request.setPageToken(_))
+      gmailThrottlerClient.scheduleListHistory(userId, request)
+    })
 
   def getAttachment(userId: String, messageId: String, attachmentId: String): Future[MessagePartBody] =
     for {
@@ -211,5 +238,17 @@ class GmailClient @Inject()(appConf: AppConf, googleAuthorization: GoogleAuthori
   private def getAttachment(userId: String, gmail: Gmail, messageId: String, attachmentId: String): Future[MessagePartBody] = {
     val request = gmail.users.messages().attachments().get(userId, messageId, attachmentId)
     gmailThrottlerClient.scheduleGetMessageAttachment(userId, request)
+  }
+
+  private def foldPages[R, T](nextPageTokenGetter: R => Option[String], payloadGetter: R => java.util.List[T], requestBuilder: Option[String] => Future[R]): Future[List[T]] = {
+    def fold(request: => Future[R], acc: List[T] = List()): Future[List[T]] = {
+      request.flatMap(response => {
+        // payloadGetter(response) can return null if the request gets nothing
+        val newPayload = Option(payloadGetter(response)).map(_.asScala.toList).fold(List[T]())(identity)
+        val newAcc = acc ++ newPayload
+        nextPageTokenGetter(response).fold(fs(newAcc)) { nextPageToken => fold(requestBuilder(Some(nextPageToken)), newAcc) }
+      })
+    }
+    fold(requestBuilder(None))
   }
 }
