@@ -1,10 +1,11 @@
 package org.connectus;
 
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
 import com.firebase.client.Firebase;
 import com.google.android.gms.auth.api.Auth;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
@@ -18,7 +19,7 @@ import rx.subscriptions.CompositeSubscription;
 import javax.inject.Inject;
 
 @Slf4j
-abstract public class ActivityBase extends Activity {
+abstract public class ActivityBase extends AppCompatActivity {
 
     @Inject
     EnvironmentHelper environmentHelper;
@@ -33,7 +34,7 @@ abstract public class ActivityBase extends Activity {
     GoogleApiClient googleApiClient;
     Firebase firebaseRef;
     Firebase.AuthStateListener logoutAuthListener;
-    String userEmail;
+    Toolbar toolbar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,8 +55,6 @@ abstract public class ActivityBase extends Activity {
             logoutAuthListener = authData -> {
                 if (authData == null || !userRepository.isUserLoggedIn()) {
                     logout();
-                } else {
-                    userEmail = userRepository.getUserEmail();
                 }
             };
             if (allActivitiesExceptLogin()) {

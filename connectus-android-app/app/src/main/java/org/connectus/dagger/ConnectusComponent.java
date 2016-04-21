@@ -22,4 +22,6 @@ public interface ConnectusComponent {
     void inject(ActivityBase activityBase);
 
     void inject(MessageAdapter messageAdapter);
+
+    void inject(ThreadAdapter threadAdapter);
 }

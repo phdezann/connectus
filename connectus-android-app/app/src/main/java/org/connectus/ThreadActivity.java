@@ -2,6 +2,7 @@ package org.connectus;
 
 import android.database.DataSetObserver;
 import android.os.Bundle;
+import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -19,6 +20,7 @@ public class ThreadActivity extends ActivityBase {
 
     public static final String RESIDENT_ID_ARG = "residentId";
     public static final String THREAD_ID_ARG = "threadId";
+    public static final String CONTACT_EMAIL_ARG = "contactEmail";
 
     @Inject
     UserRepository userRepository;
@@ -43,7 +45,14 @@ public class ThreadActivity extends ActivityBase {
 
         String residentId = getIntent().getStringExtra(RESIDENT_ID_ARG);
         String threadId = getIntent().getStringExtra(THREAD_ID_ARG);
+        String contactEmail = getIntent().getStringExtra(CONTACT_EMAIL_ARG);
         messagesListView = (ListView) findViewById(R.id.list_view_message);
+
+        toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayShowTitleEnabled(false);
+
+        toolbar.setTitle(String.format(getString(R.string.thread_with), contactEmail));
 
         Firebase ref = new Firebase(FirebaseFacadeConstants.getResidentMessagesOfThreadUrl(FirebaseFacade.encode(userRepository.getUserEmail()), residentId, threadId));
         adapter = new MessageAdapter(this, GmailMessage.class, ref, userRepository, firebaseFacade, threadId);

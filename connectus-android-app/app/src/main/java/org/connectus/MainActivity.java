@@ -2,8 +2,10 @@ package org.connectus;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.v7.widget.Toolbar;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.widget.ListView;
-import android.widget.TextView;
 import com.firebase.client.Firebase;
 import com.google.common.base.Optional;
 import lombok.extern.slf4j.Slf4j;
@@ -18,7 +20,6 @@ public class MainActivity extends ActivityBase {
     @Inject
     LoginOrchestrator loginOrchestrator;
 
-    TextView connectedUser;
     ListView messagesListView;
 
     @Override
@@ -27,12 +28,15 @@ public class MainActivity extends ActivityBase {
         ((ConnectusApplication) getApplication()).getComponent().inject(this);
         setContentView(R.layout.main);
 
-        connectedUser = (TextView) findViewById(R.id.connected_user);
-        connectedUser.setText(userRepository.getUserEmail());
+        toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayShowTitleEnabled(false);
 
-        findViewById(R.id.logout).setOnClickListener(view -> logout());
+        toolbar.setTitle(userRepository.getUserEmail());
+        toolbar.setSubtitle(R.string.admin_view);
+
         messagesListView = (ListView) findViewById(R.id.list_view_message);
-        setupMessageAdapter();
+        setupThreadAdapter();
     }
 
     public void addResidentAndAddContact(String residentName) {
@@ -43,7 +47,7 @@ public class MainActivity extends ActivityBase {
         firebaseFacade.updateContact(userRepository.getUserEmail(), residentId, emailOfContact, previousBoundResidentId);
     }
 
-    private void setupMessageAdapter() {
+    private void setupThreadAdapter() {
         if (userRepository.isUserLoggedIn()) {
             Firebase ref = new Firebase(FirebaseFacadeConstants.getAdminMessagesUrl(FirebaseFacade.encode(userRepository.getUserEmail())));
             ThreadAdapter adapter = new ThreadAdapter(this, GmailThread.class, R.layout.thread_list_item, ref);
@@ -67,6 +71,7 @@ public class MainActivity extends ActivityBase {
                     Resident resident = residentOpt.get();
                     Intent intent = new Intent(this, ResidentThreadListActivity.class);
                     intent.putExtra(ResidentThreadListActivity.RESIDENT_ID_ARG, resident.getId());
+                    intent.putExtra(ResidentThreadListActivity.RESIDENT_NAME_ARG, resident.getName());
                     startActivity(intent);
                 } else {
                     toaster.toast(getString(R.string.no_resident_associated));
@@ -74,5 +79,21 @@ public class MainActivity extends ActivityBase {
                 return true;
             });
         }
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.main, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.logout:
+                logout();
+                break;
+        }
+        return super.onOptionsItemSelected(item);
     }
 }

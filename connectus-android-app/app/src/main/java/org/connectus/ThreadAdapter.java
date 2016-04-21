@@ -5,20 +5,36 @@ import android.view.View;
 import android.widget.TextView;
 import com.firebase.client.Firebase;
 import com.firebase.ui.FirebaseListAdapter;
-import org.apache.commons.lang3.StringUtils;
+import com.google.common.base.Optional;
 import org.connectus.model.GmailThread;
+import org.connectus.model.Resident;
+
+import javax.inject.Inject;
 
 public class ThreadAdapter extends FirebaseListAdapter<GmailThread> {
+
+    @Inject
+    DateFormatter dateFormatter;
+
     public ThreadAdapter(Activity activity, Class<GmailThread> modelClass, int modelLayout, Firebase ref) {
         super(activity, modelClass, modelLayout, ref);
+        ((ConnectusApplication) activity.getApplication()).getComponent().inject(this);
     }
 
     @Override
     protected void populateView(View view, GmailThread thread, int position) {
-        TextView snippet = (TextView) view.findViewById(R.id.snippet);
+        TextView id = (TextView) view.findViewById(R.id.id);
         TextView lastModification = (TextView) view.findViewById(R.id.last_modification);
+        TextView snippet = (TextView) view.findViewById(R.id.snippet);
+        TextView resident = (TextView) view.findViewById(R.id.resident);
 
-        snippet.setText(StringUtils.abbreviate(thread.getId(), 50));
-        lastModification.setText(StringUtils.abbreviate(thread.getLastMessage().getParsedDate().toString(), 50));
+        id.setText(thread.getId());
+        lastModification.setText(dateFormatter.toPrettyString(thread.getLastMessage().getParsedDate()));
+        snippet.setText(thread.getSnippet());
+
+        Optional<Resident> residentOpt = thread.getLastMessage().getResidentOpt();
+        if (residentOpt.isPresent()) {
+            resident.setText(residentOpt.get().getName());
+        }
     }
 }

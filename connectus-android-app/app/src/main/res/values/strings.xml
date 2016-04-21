@@ -21,4 +21,7 @@
     <string name="minute_ago">Il y a %1$s %2$s</string>
     <string name="yesterday_at">Hier à %s</string>
     <string name="on_at">Le %1$s à %2$s</string>
+    <string name="admin_view">Vue administrateur</string>
+    <string name="inbox_of">Boîte aux lettres de %s</string>
+    <string name="thread_with">Conversation avec %s</string>
 </resources>
