@@ -17,4 +17,8 @@
     <string name="new_resident">New resident</string>
     <string name="send">Send</string>
     <string name="logout">Logout</string>
+    <string name="just_now">A l\'instant</string>
+    <string name="minute_ago">Il y a %1$s %2$s</string>
+    <string name="yesterday_at">Hier à %s</string>
+    <string name="on_at">Le %1$s à %2$s</string>
 </resources>

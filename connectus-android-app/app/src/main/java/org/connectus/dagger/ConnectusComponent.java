@@ -20,4 +20,6 @@ public interface ConnectusComponent {
     void inject(LoginActivity loginActivity);
 
     void inject(ActivityBase activityBase);
+
+    void inject(MessageAdapter messageAdapter);
 }

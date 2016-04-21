@@ -16,12 +16,16 @@ import rx.Observable;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
 
+import javax.inject.Inject;
 import java.util.List;
 
 public class MessageAdapter extends FirebaseListAdapter<GmailMessage> {
 
     private static final int LEFT_TYPE = 0;
     private static final int RIGHT_TYPE = 1;
+
+    @Inject
+    DateFormatter dateFormatter;
 
     private Activity activity;
     private FirebaseFacade firebaseFacade;
@@ -30,6 +34,7 @@ public class MessageAdapter extends FirebaseListAdapter<GmailMessage> {
 
     public MessageAdapter(Activity activity, Class<GmailMessage> modelClass, Firebase ref, UserRepository userRepository, FirebaseFacade firebaseFacade, String threadId) {
         super(activity, modelClass, 0, ref);
+        ((ConnectusApplication) activity.getApplication()).getComponent().inject(this);
         this.activity = activity;
         this.userRepository = userRepository;
         this.firebaseFacade = firebaseFacade;
@@ -69,7 +74,7 @@ public class MessageAdapter extends FirebaseListAdapter<GmailMessage> {
         TextView date = (TextView) view.findViewById(R.id.date);
         TextView content = (TextView) view.findViewById(R.id.content);
 
-        date.setText(DateFormatter.toPrettyString(gmailMessage.getParsedDate()));
+        date.setText(dateFormatter.toPrettyString(gmailMessage.getParsedDate()));
         content.setText(StringUtils.abbreviate(gmailMessage.getContent(), 50));
 
         Firebase ref = getRef(position);

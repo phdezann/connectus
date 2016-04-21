@@ -1,25 +1,38 @@
 package org.connectus;
 
+import android.content.Context;
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.format.ISODateTimeFormat;
 
+import javax.inject.Inject;
+
 public class DateFormatter {
 
-    public static DateTime parse(String date) {
+    public static final String TIME_PATTERN = "HH:mm";
+    public static final String DATE_PATTERN = "dd/MM/YY";
+
+    Context context;
+
+    @Inject
+    public DateFormatter(Context context) {
+        this.context = context;
+    }
+
+    public DateTime parse(String date) {
         return ISODateTimeFormat.dateTimeParser().parseDateTime(pruneZoneIdIfAny(date));
     }
 
-    private static String pruneZoneIdIfAny(String date) {
+    private String pruneZoneIdIfAny(String date) {
         return StringUtils.substringBefore(date, "[");
     }
 
-    public static String toPrettyString(DateTime date) {
+    public String toPrettyString(DateTime date) {
         return toPrettyString(date, DateTime.now(), DateTimeZone.getDefault());
     }
 
-    public static String toPrettyString(DateTime date, DateTime now, DateTimeZone timeZone) {
+    public String toPrettyString(DateTime date, DateTime now, DateTimeZone timeZone) {
         DateTime dateInDefaultTimeZone = date.toDateTime(timeZone);
         DateTime nowInDefaultTimeZone = now.toDateTime(timeZone);
         DateTime dateMinusOneMinute = nowInDefaultTimeZone.minusMinutes(1);
@@ -28,16 +41,17 @@ public class DateFormatter {
         DateTime startOfYesterday = nowInDefaultTimeZone.minusDays(1).withTimeAtStartOfDay();
 
         if (dateInDefaultTimeZone.isAfter(dateMinusOneMinute)) {
-            return "A l'instant";
+            return context.getString(R.string.just_now);
         } else if (dateInDefaultTimeZone.isAfter(dateMinusOneHour)) {
             int minutes = nowInDefaultTimeZone.getMinuteOfDay() - dateInDefaultTimeZone.getMinuteOfDay();
-            return "Il y a " + minutes + " minute" + (minutes == 1 ? "" : "s");
+            String minuteQuantity = context.getResources().getQuantityString(R.plurals.minute, minutes);
+            return String.format(context.getString(R.string.minute_ago), minutes, minuteQuantity);
         } else if (dateInDefaultTimeZone.isAfter(startOfToday)) {
-            return dateInDefaultTimeZone.toString("HH:mm");
+            return dateInDefaultTimeZone.toString(TIME_PATTERN);
         } else if (dateInDefaultTimeZone.isAfter(startOfYesterday)) {
-            return "Hier à " + dateInDefaultTimeZone.toString("HH:mm");
+            return String.format(context.getString(R.string.yesterday_at), dateInDefaultTimeZone.toString(TIME_PATTERN));
         } else {
-            return dateInDefaultTimeZone.toString("'Le' dd/MM/YY 'à' HH:mm");
+            return String.format(context.getString(R.string.on_at), dateInDefaultTimeZone.toString(DATE_PATTERN), dateInDefaultTimeZone.toString(TIME_PATTERN));
         }
     }
 }

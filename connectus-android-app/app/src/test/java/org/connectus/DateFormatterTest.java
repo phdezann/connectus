@@ -1,18 +1,37 @@
 package org.connectus;
 
+import dagger.Component;
+import org.connectus.dagger.AndroidModule;
+import org.connectus.dagger.AppModule;
+import org.connectus.dagger.ConnectusComponent;
+import org.connectus.support.RobolectricTestBase;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
+import org.junit.Before;
 import org.junit.Test;
+import org.robolectric.RuntimeEnvironment;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import javax.inject.Inject;
+import javax.inject.Singleton;
 
-public class DateFormatterTest {
+public class DateFormatterTest extends RobolectricTestBase {
+
+    @Inject
+    DateFormatter dateFormatter;
 
     private DateTimeFormatter parser = ISODateTimeFormat.dateTimeParser();
     private DateTimeZone timeZone = DateTimeZone.forID("Europe/Paris");
     private DateTime now = parser.parseDateTime("2015-07-01T15:30:00+02:00");
+
+    @Before
+    public void setup() {
+        ConnectusApplication connectusApplication = (ConnectusApplication) RuntimeEnvironment.application;
+        ConnectusTestComponent component = DaggerDateFormatterTest_ConnectusTestComponent.builder().androidModule(new AndroidModule(connectusApplication)).build();
+        connectusApplication.setupComponent(component);
+        component.inject(this);
+    }
 
     @Test
     public void toPrettyString() {
@@ -26,6 +45,12 @@ public class DateFormatterTest {
     }
 
     private String asPrettyString(String date, DateTime now) {
-        return DateFormatter.toPrettyString(DateFormatter.parse(date), now, timeZone);
+        return dateFormatter.toPrettyString(dateFormatter.parse(date), now, timeZone);
+    }
+
+    @Component(modules = {AppModule.class, AndroidModule.class})
+    @Singleton
+    protected interface ConnectusTestComponent extends ConnectusComponent {
+        void inject(DateFormatterTest dateFormatterTest);
     }
 }
