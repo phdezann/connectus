@@ -14,14 +14,14 @@ docker create                    \
     --name connectus-build-cache \
     connectus-build-cache || echo "Data container for build caches already exists, keep it for faster build executions."
 docker run                               \
-    -it --rm                             \
+    --rm                                 \
     --volumes-from connectus-build-cache \
     -v $(pwd):/workspace                 \
     -w /workspace/connectus-backend      \
     connectus-build                      \
     sbt test stage
 docker run                                                \
-    -it --rm                                              \
+    --rm                                                  \
     --volumes-from connectus-build-cache                  \
     -e APPLICATION_FIREBASE_URL=$APPLICATION_FIREBASE_URL \
     -v $(pwd):/workspace                                  \
