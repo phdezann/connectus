@@ -4,6 +4,6 @@ set -e
 mkdir ~/.ssh
 cp $HEROKU_SSH_KEY_PATH ~/.ssh
 ssh-keyscan heroku.com > ~/.ssh/known_hosts
-echo 'IdentityFile ~/.ssh/id_rsa-travisci-4-heroku' > ~/.ssh/config
+echo 'IdentityFile ~/.ssh/id_rsa-ci-4-heroku' > ~/.ssh/config
 git remote add heroku-connectusnow git@heroku.com:connectusnow.git || true
 git push heroku-connectusnow master -f

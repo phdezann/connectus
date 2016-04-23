@@ -1,14 +1,19 @@
 #!/bin/bash
 set -e
-docker build                      \
-    --build-arg=USER_UID=$(id -u) \
-    --build-arg=USER_GID=$(id -g) \
-    -t connectus-build            \
+
+USER_UID=${USER_UID:-$(id -u)}
+USER_GID=${USER_GID:-$(id -g)}
+APP_DIR=${APP_DIR:-$(pwd)}
+
+docker build                       \
+    --build-arg=USER_UID=$USER_UID \
+    --build-arg=USER_GID=$USER_GID \
+    -t connectus-build             \
     connectus-build-tools/docker-build
-docker build                      \
-    --build-arg=USER_UID=$(id -u) \
-    --build-arg=USER_GID=$(id -g) \
-    -t connectus-build-cache      \
+docker build                       \
+    --build-arg=USER_UID=$USER_UID \
+    --build-arg=USER_GID=$USER_GID \
+    -t connectus-build-cache       \
     connectus-build-tools/docker-build-cache
 docker create                    \
     --name connectus-build-cache \
@@ -16,7 +21,7 @@ docker create                    \
 docker run                               \
     --rm                                 \
     --volumes-from connectus-build-cache \
-    -v $(pwd):/workspace                 \
+    -v $APP_DIR:/workspace               \
     -w /workspace/connectus-backend      \
     connectus-build                      \
     sbt test stage
@@ -24,7 +29,7 @@ docker run                                                \
     --rm                                                  \
     --volumes-from connectus-build-cache                  \
     -e APPLICATION_FIREBASE_URL=$APPLICATION_FIREBASE_URL \
-    -v $(pwd):/workspace                                  \
+    -v $APP_DIR:/workspace                                \
     -w /workspace/connectus-android-app                   \
     connectus-build                                       \
     /bin/bash -c "init-android-sdk && init-emulator ~/android-sdk-conf/samsung_galaxy_tab_a/arm.conf && ./gradlew --no-daemon test connectedAndroidTest"
