@@ -103,6 +103,7 @@ class UserActors @Inject()(residentListenerActorFactory: ResidentListenerActor.F
       userActors.contactListenerActor ! ContactListenerActor.Stop
       userActors.gmailWatcherActor ! GmailWatcherActor.StopWatch(email)
       userActors.outboxListenerActor ! OutboxListenerActor.Stop
+      userActors.attachmentListenerActor ! AttachmentListenerActor.Stop
       context.stop(userActors.jobQueueActor)
     case UserActors.GetJobQueueActor(email: Email) =>
       sender ! jobQueues(email).jobQueueActor
