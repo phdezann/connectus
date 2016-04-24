@@ -12,7 +12,7 @@ import com.firebase.client.Firebase;
 import com.google.android.gms.auth.UserRecoverableAuthException;
 import com.google.android.gms.auth.api.Auth;
 import com.google.android.gms.auth.api.signin.GoogleSignInResult;
-import com.google.common.base.Throwables;
+import com.google.common.base.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.connectus.support.NoOpObservable;
 import rx.Observable;
@@ -20,6 +20,9 @@ import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
 
 import javax.inject.Inject;
+
+import static com.google.common.base.Optional.absent;
+import static com.google.common.base.Optional.of;
 
 @Slf4j
 public class LoginActivity extends ActivityBase {
@@ -95,7 +98,7 @@ public class LoginActivity extends ActivityBase {
         if (requestCode == RC_GOOGLE_LOGIN) { // callback after interacting with the google plus accounts popup
             GoogleSignInResult result = Auth.GoogleSignInApi.getSignInResultFromIntent(data);
             if (resultCode == RESULT_CANCELED) { // the user dismissed the popup for choosing the google plus account
-                onLoginError();
+                onLoginError(absent());
             } else if (result.isSuccess()) {
                 String googleAccountEmail = result.getSignInAccount().getEmail();
                 subscribe(loginOrchestrator.loginAndCheckRefreshToken(googleAccountEmail) //
@@ -103,7 +106,7 @@ public class LoginActivity extends ActivityBase {
             }
         } else if (requestCode == OAUTH_PERMISSIONS) { // callback after interacting with the oauth permissions screen
             if (resultCode == RESULT_CANCELED) { // permissions have been denied by the user
-                onLoginError();
+                onLoginError(absent());
             } else if (resultCode == RESULT_OK) {
                 Bundle bundle = data.getExtras();
                 String googleAccountEmail = bundle.getString(AccountManager.KEY_ACCOUNT_NAME);
@@ -116,10 +119,7 @@ public class LoginActivity extends ActivityBase {
     private void subscribe(Observable<NoOpObservable.NoOp> obs) {
         subs.add(obs.subscribeOn(Schedulers.io()) //
                 .observeOn(AndroidSchedulers.mainThread()) //
-                .subscribe(authData -> onLoginSuccess(), e -> {
-                    e.printStackTrace();
-                    toaster.toast("Error: " + Throwables.getStackTraceAsString(e));
-                }));
+                .subscribe(authData -> onLoginSuccess(), e -> onLoginError(of(e))));
     }
 
     private Observable<NoOpObservable.NoOp> askOAuthPermissionsOnUserRecoverableAuthException(Throwable e) {
@@ -147,9 +147,12 @@ public class LoginActivity extends ActivityBase {
         finish();
     }
 
-    private void onLoginError() {
+    private void onLoginError(Optional<Throwable> e) {
         loginProgressDialog.dismiss();
         toaster.toast(getString(R.string.on_login_error));
+        if (e.isPresent()) {
+            e.get().printStackTrace();
+        }
     }
 
     private void startListeningForLogin() {
