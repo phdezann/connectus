@@ -180,6 +180,23 @@ public class FirebaseFacade {
         return hopToIoScheduler(subject);
     }
 
+    public Observable<String> backendStatus() {
+        ReplaySubject<String> subject = ReplaySubject.create();
+        Firebase firebase = new Firebase(FirebaseFacadeConstants.getBackendStatus());
+        firebase.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                subject.onNext((String) dataSnapshot.getValue());
+            }
+
+            @Override
+            public void onCancelled(FirebaseError firebaseError) {
+                subject.onError(new FirebaseException(firebaseError.toException()));
+            }
+        });
+        return hopToIoScheduler(subject);
+    }
+
     public Observable<AuthData> loginWithGoogle(AccessToken token) {
         ReplaySubject<AuthData> subject = ReplaySubject.create();
         Firebase firebase = new Firebase(FirebaseFacadeConstants.getRootUrl());

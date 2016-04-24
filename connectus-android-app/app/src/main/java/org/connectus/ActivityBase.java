@@ -35,6 +35,7 @@ abstract public class ActivityBase extends AppCompatActivity {
     Firebase firebaseRef;
     Firebase.AuthStateListener logoutAuthListener;
     Toolbar toolbar;
+    AlertDialog backendStatusDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,26 +72,47 @@ abstract public class ActivityBase extends AppCompatActivity {
                             showUpdateAppModalDialog();
                         }
                     }));
+
+            Observable<String> backendStatusObs = firebaseFacade.backendStatus();
+            subs.add(backendStatusObs.subscribeOn(Schedulers.io()) //
+                    .observeOn(AndroidSchedulers.mainThread()) //
+                    .subscribe(backendStatus -> {
+                        if (backendStatus != null && backendStatus.equals("off")) {
+                            showBackendOfflineDialog();
+                        } else {
+                            if (backendStatusDialog != null) {
+                                backendStatusDialog.dismiss();
+                            }
+                        }
+                    }));
         }
     }
 
     private void showUpdateAppModalDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle(R.string.update_available_title);
-        builder.setMessage(R.string.update_available);
-        builder.setPositiveButton(R.string.update, (dialog, which) -> {
-            // use a setOnClickListener instead in order not to close the dialog on button click
+        AlertDialog.Builder updateAllDialogBuilder = new AlertDialog.Builder(this);
+        updateAllDialogBuilder.setTitle(R.string.update_available_title);
+        updateAllDialogBuilder.setMessage(R.string.update_available);
+        updateAllDialogBuilder.setPositiveButton(R.string.update, (dialog, which) -> {
+            // use a setOnClickListener instead in order not to close the backendStatusDialog on button click
         });
-        builder.setCancelable(false);
-        AlertDialog dialog = builder.create();
-        dialog.show();
-        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(view -> {
+        updateAllDialogBuilder.setCancelable(false);
+        AlertDialog updateAppDialog = updateAllDialogBuilder.create();
+        updateAppDialog.show();
+        updateAppDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(view -> {
             try {
                 startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=" + getPackageName())));
             } catch (android.content.ActivityNotFoundException ignore) {
                 toaster.toast(getString(R.string.update_available_no_google_play));
             }
         });
+    }
+
+    private void showBackendOfflineDialog() {
+        AlertDialog.Builder backendStatusDialogBuilder = new AlertDialog.Builder(this);
+        backendStatusDialogBuilder.setMessage(R.string.backend_sleeping);
+        backendStatusDialogBuilder.setCancelable(false);
+        backendStatusDialog = backendStatusDialogBuilder.create();
+        backendStatusDialog.show();
     }
 
     private boolean allActivitiesExceptLogin() {

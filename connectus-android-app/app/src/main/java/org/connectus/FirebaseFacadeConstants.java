@@ -27,6 +27,10 @@ public class FirebaseFacadeConstants {
         return getRootUrl() + "/config/versionName";
     }
 
+    public static String getBackendStatus() {
+        return getRootUrl() + "/monitoring/status";
+    }
+
     public static String getAuthorizationCodesUrl() {
         return getRootUrl() + "/authorization_codes";
     }

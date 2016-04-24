@@ -11,6 +11,7 @@
     <string name="update_available">Good news, an update is available on Google Play!</string>
     <string name="update_available_no_google_play">Google Play must be installed to get updates automatically</string>
     <string name="update">Update App</string>
+    <string name="backend_sleeping">Le serveur Connectus est actuellement stoppé.</string>
     <string name="on_logging_success">Successfully logged in</string>
     <string name="on_login_error">Login failed</string>
     <string name="no_resident_associated">No resident associated to this message yet</string>
