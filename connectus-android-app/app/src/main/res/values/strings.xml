@@ -27,4 +27,5 @@
     <string name="thread_with">Conversation avec %s</string>
     <string name="login_progress_dialog_message">Connexion...</string>
     <string name="tagging_progress_dialog_message">Synchronisation des labels et des messages en cours...</string>
+    <string name="resident_name">Nom du résident</string>
 </resources>
