@@ -24,4 +24,6 @@
     <string name="admin_view">Vue administrateur</string>
     <string name="inbox_of">Boîte aux lettres de %s</string>
     <string name="thread_with">Conversation avec %s</string>
+    <string name="login_progress_dialog_message">Authentification...</string>
+    <string name="tagging_progress_dialog_message">Modification des labels et synchronisation des messages en cours...</string>
 </resources>

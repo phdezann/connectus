@@ -2,6 +2,7 @@ package org.connectus;
 
 import android.Manifest;
 import android.accounts.AccountManager;
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
@@ -33,6 +34,7 @@ public class LoginActivity extends ActivityBase {
     LoginOrchestrator loginOrchestrator;
 
     Firebase.AuthStateListener loginAuthListener;
+    ProgressDialog loginProgressDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,6 +42,10 @@ public class LoginActivity extends ActivityBase {
         ((ConnectusApplication) getApplication()).getComponent().inject(this);
         setContentView(R.layout.login);
         findViewById(R.id.login_with_google).setOnClickListener(view -> onSignInGooglePressed());
+
+        loginProgressDialog = new ProgressDialog(this);
+        loginProgressDialog.setMessage(getString(R.string.login_progress_dialog_message));
+        loginProgressDialog.setCancelable(false);
     }
 
     @Override
@@ -55,6 +61,7 @@ public class LoginActivity extends ActivityBase {
     }
 
     public void onSignInGooglePressed() {
+        loginProgressDialog.show();
         int permissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.GET_ACCOUNTS);
         if (permissionCheck == PackageManager.PERMISSION_GRANTED) {
             chooseGoogleAccount();
@@ -128,6 +135,7 @@ public class LoginActivity extends ActivityBase {
     }
 
     private void onLoginSuccess() {
+        loginProgressDialog.dismiss();
         toaster.toast(getString(R.string.on_logging_success));
         startMainActivity();
     }
@@ -140,6 +148,7 @@ public class LoginActivity extends ActivityBase {
     }
 
     private void onLoginError() {
+        loginProgressDialog.dismiss();
         toaster.toast(getString(R.string.on_login_error));
     }
 

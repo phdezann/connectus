@@ -1,6 +1,8 @@
 package org.connectus;
 
+import android.app.ProgressDialog;
 import android.content.Intent;
+import android.database.DataSetObserver;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
@@ -21,6 +23,7 @@ public class MainActivity extends ActivityBase {
     LoginOrchestrator loginOrchestrator;
 
     ListView messagesListView;
+    ProgressDialog taggingProgressDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,6 +40,10 @@ public class MainActivity extends ActivityBase {
 
         messagesListView = (ListView) findViewById(R.id.list_view_message);
         setupThreadAdapter();
+
+        taggingProgressDialog = new ProgressDialog(this);
+        taggingProgressDialog.setMessage(getString(R.string.tagging_progress_dialog_message));
+        taggingProgressDialog.setCancelable(false);
     }
 
     public void addResidentAndAddContact(String residentName) {
@@ -44,6 +51,7 @@ public class MainActivity extends ActivityBase {
     }
 
     public void onAddContact(String emailOfContact, String residentId, Optional<String> previousBoundResidentId) {
+        taggingProgressDialog.show();
         firebaseFacade.updateContact(userRepository.getUserEmail(), residentId, emailOfContact, previousBoundResidentId);
     }
 
@@ -52,6 +60,14 @@ public class MainActivity extends ActivityBase {
             Firebase ref = new Firebase(FirebaseFacadeConstants.getAdminMessagesUrl(FirebaseFacade.encode(userRepository.getUserEmail())));
             ThreadAdapter adapter = new ThreadAdapter(this, GmailThread.class, R.layout.thread_list_item, ref);
             messagesListView.setAdapter(adapter);
+
+            adapter.registerDataSetObserver(new DataSetObserver() {
+                @Override
+                public void onChanged() {
+                    super.onChanged();
+                    taggingProgressDialog.dismiss();
+                }
+            });
 
             messagesListView.setOnItemClickListener((parent, view, position, id) -> {
                 GmailThread thread = adapter.getItem(position);
