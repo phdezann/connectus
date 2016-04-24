@@ -15,6 +15,7 @@
     <string name="on_logging_success">Connexion réussie</string>
     <string name="on_login_error">Connexion échouée</string>
     <string name="no_resident_associated">Aucun resident n\'est associé à ce message</string>
+    <string name="no_contact_email">Aucun email de contact ne peut être associé à ce message</string>
     <string name="new_resident">Nouveau resident</string>
     <string name="send">Envoyer</string>
     <string name="logout">Déconnexion</string>

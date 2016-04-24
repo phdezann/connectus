@@ -71,13 +71,17 @@ public class MainActivity extends ActivityBase {
 
             messagesListView.setOnItemClickListener((parent, view, position, id) -> {
                 GmailThread thread = adapter.getItem(position);
-                ResidentListDialogFragment fragment = new ResidentListDialogFragment();
-                Bundle args = new Bundle();
-                args.putString(ResidentListDialogFragment.CONTACT_EMAIL_ARG, thread.getContactEmailOpt().get());
-                args.putString(ResidentListDialogFragment.BOUND_RESIDENT_ID_ARG, thread.getLastMessage().getResidentOpt().transform(r -> r.getId()).orNull());
-                fragment.setArguments(args);
-
-                fragment.show(getFragmentManager(), ResidentListDialogFragment.class.getSimpleName());
+                if (thread.getContactEmailOpt().isPresent()) {
+                    String contactEmail = thread.getContactEmailOpt().get();
+                    ResidentListDialogFragment fragment = new ResidentListDialogFragment();
+                    Bundle args = new Bundle();
+                    args.putString(ResidentListDialogFragment.CONTACT_EMAIL_ARG, contactEmail);
+                    args.putString(ResidentListDialogFragment.BOUND_RESIDENT_ID_ARG, thread.getLastMessage().getResidentOpt().transform(r -> r.getId()).orNull());
+                    fragment.setArguments(args);
+                    fragment.show(getFragmentManager(), ResidentListDialogFragment.class.getSimpleName());
+                } else {
+                    toaster.toast(getString(R.string.no_contact_email));
+                }
             });
 
             messagesListView.setOnItemLongClickListener((parent, view, position, id) -> {
