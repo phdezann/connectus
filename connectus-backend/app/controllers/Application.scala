@@ -11,7 +11,7 @@ import services._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class AppController @Inject()(appConf: AppConf, gmailHookClient: GmailHookClient, userActorInitializer: ActorsInitializer) extends Controller {
+class AppController @Inject()(appConf: AppConf, gmailHookClient: GmailHookClient) extends Controller {
 
   def index = Action {
     Ok(views.html.index(null))
@@ -29,7 +29,7 @@ class AppController @Inject()(appConf: AppConf, gmailHookClient: GmailHookClient
         Logger.error(errors.toString)
         fs(PreconditionFailed)
       }, notification => {
-        gmailHookClient.parse(notification).onSuccess { case result => Logger.info(s"Result of tagging inbox after gmail notification $result") }
+        gmailHookClient.scheduleTagInbox(notification).onSuccess { case result => Logger.info(s"Result of tagging inbox after gmail notification $result") }
         fs(Ok)
       })
     }

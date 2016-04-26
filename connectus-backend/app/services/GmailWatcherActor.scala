@@ -17,12 +17,8 @@ import scala.language.postfixOps
 object GmailWatcherActor {
   final val actorName = "gmailWatcherActor"
   case class StartWatch(email: Email)
-  case class StopWatch(email: Email)
   case class WatchResponsePacket(email: Email, gmailWatchReply: GmailWatchReply, client: ActorRef)
-
-
   case class StartWatchDone(email: Email, timeBeforeRenew: Long)
-  case class StopWatchDone(email: Email, totalWatcherCount: Int)
 }
 
 class GmailWatcherActor @Inject()(clock: Clock, mailClient: MailClient) extends Actor with ActorLogging {
@@ -41,14 +37,12 @@ class GmailWatcherActor @Inject()(clock: Clock, mailClient: MailClient) extends 
       renew = Some(context.system.scheduler.scheduleOnce(timeBeforeRenew seconds)(self ! StartWatch(email)))
       client ! StartWatchDone(email, timeBeforeRenew)
       Logger.info(s"WatchResponse received for $email with expiration date ${gmailWatchReply.expirationDate} and historyId ${gmailWatchReply.historyId}")
-    case StopWatch(email) =>
-      renew.fold(())(_.cancel)
-      renew = None
-      sender ! StopWatchDone
-      Logger.info(s"StopWatch for $email")
-      context.stop(self)
     case Status.Failure(e) =>
       Logger.error(s"Watch failed", e)
       context.stop(self)
+  }
+
+  override def postStop(): Unit = {
+    renew.fold(())(_.cancel)
   }
 }

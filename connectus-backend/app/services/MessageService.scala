@@ -3,18 +3,19 @@ package services
 import javax.inject.{Inject, Singleton}
 
 import common._
-import model.{AttachmentRequest, GmailLabel, GmailMessage, OutboxMessage, Resident, ThreadBundle}
+import model.{AttachmentRequest, GmailLabel, OutboxMessage, Resident, ThreadBundle}
 import play.api.Logger
+import services.HistoryIdService.HistoryIdStatus
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 @Singleton
-class MessageService @Inject()(mailClient: MailClient, labelService: LabelService, repository: Repository) {
-
-  var historyIdOpt: Option[BigInt] = None
+class MessageService @Inject()(mailClient: MailClient, labelService: LabelService, repository: Repository, historyIdService: HistoryIdService) {
 
   def tagInbox(email: Email, ignoreHistoryId: Boolean = false): Future[Unit] = {
+    Logger.info(s"Initiating tagInbox for $email with ignoreHistoryId=$ignoreHistoryId")
+
     def doLabelMessages(connectusLabel: GmailLabel, residentLabels: Map[Resident, GmailLabel]) =
       repository.getResidentsAndContacts(email)
         .flatMap { residents =>
@@ -42,39 +43,22 @@ class MessageService @Inject()(mailClient: MailClient, labelService: LabelServic
       filteredThreadBundles = removeTrashedMessages(threadBundles)
       messagesSnapshot <- repository.getMessagesSnapshot(email)
       _ <- repository.saveThreads(email, filteredThreadBundles, messagesSnapshot, residentsLabels)
-      newHistoryId <- getLatestHistoryId(email)
-    } yield {
-      historyIdOpt = newHistoryId
-    }
+      historyIdStatus <- historyIdService.getHistoryIdStatus(email)
+      _ <- historyIdService.updateHistoryIdStatus(email, historyIdStatus)
+    } yield ()
 
-    def getLatestHistoryId(email: Email): Future[Option[BigInt]] = {
-      if (historyIdOpt.isDefined) {
-        mailClient.getLastHistoryId(email, historyIdOpt.get).map(Some(_))
-      } else {
-        mailClient.listThreads(email, LabelService.allMessages)
-          .map(_.headOption)
-          .flatMap { latestThreadOpt =>
-            if (latestThreadOpt.isDefined) {
-              mailClient.getLastHistoryId(email, latestThreadOpt.get.historyId).map(Some(_))
-            } else {
-              fs(None)
-            }
-          }
-      }
-    }
-
-    getLatestHistoryId(email).flatMap { latestHistoryIdOpt =>
-      (ignoreHistoryId, historyIdOpt, latestHistoryIdOpt) match {
-        case (true, _, Some(latestHistoryId)) =>
+    historyIdService.getHistoryIdStatus(email).flatMap { historyIdStatus =>
+      (ignoreHistoryId, historyIdStatus) match {
+        case (true, HistoryIdService.HistoryIdStatus(_, Some(latestHistoryId))) =>
           Logger.info(s"Ignoring historyId, tagging the inbox with latestHistoryId ${latestHistoryId}")
           doTagInbox
-        case (false, None, Some(latestHistoryId)) =>
+        case (false, HistoryIdService.HistoryIdStatus(None, Some(latestHistoryId))) =>
           Logger.info(s"No historyId saved from previous calls, tagging the inbox with latestHistoryId ${latestHistoryId}")
           doTagInbox
-        case (false, Some(historyId), Some(latestHistoryId)) if latestHistoryId > historyId =>
+        case (false, HistoryIdService.HistoryIdStatus(Some(historyId), Some(latestHistoryId))) if latestHistoryId > historyId =>
           Logger.info(s"historyId ${historyId} saved from previous calls is older than the current one ${latestHistoryId}, tagging the inbox")
           doTagInbox
-        case (false, Some(historyId), Some(latestHistoryId)) if historyId <= latestHistoryId =>
+        case (false, HistoryIdService.HistoryIdStatus(Some(historyId), Some(latestHistoryId))) if historyId <= latestHistoryId =>
           Logger.info(s"historyId ${historyId} saved from previous calls and current one ${latestHistoryId} indicates that tagging the inbox can be skipped")
           fs(())
       }
@@ -104,4 +88,32 @@ class MessageService @Inject()(mailClient: MailClient, labelService: LabelServic
   def prepareRequest(email: Email, attachmentRequest: AttachmentRequest): Future[Unit] =
     mailClient.getMessage(email, attachmentRequest.messageId, List())
       .flatMap(freshMessage => repository.saveAttachmentResponse(email, freshMessage))
+}
+
+object HistoryIdService {
+  case class HistoryIdStatus(local: Option[BigInt], remote: Option[BigInt])
+}
+
+@Singleton
+class HistoryIdService @Inject()(mailClient: MailClient, actorsClient: ActorsClient) {
+
+  def getHistoryIdStatus(email: Email): Future[HistoryIdService.HistoryIdStatus] =
+    actorsClient.getHistoryId(email).flatMap(historyIdOpt => {
+      if (historyIdOpt.isDefined) {
+        mailClient.getLastHistoryId(email, historyIdOpt.get).map(remote => HistoryIdStatus(historyIdOpt, Some(remote)))
+      } else {
+        mailClient.listThreads(email, LabelService.allMessages)
+          .map(_.headOption)
+          .flatMap { latestThreadOpt =>
+            if (latestThreadOpt.isDefined) {
+              mailClient.getLastHistoryId(email, latestThreadOpt.get.historyId).map(remote => HistoryIdStatus(historyIdOpt, Some(remote)))
+            } else {
+              fs(HistoryIdService.HistoryIdStatus(historyIdOpt, None))
+            }
+          }
+      }
+    })
+
+  def updateHistoryIdStatus(email: Email, historyIdStatus: HistoryIdStatus) =
+    actorsClient.setHistoryId(email, historyIdStatus.remote)
 }

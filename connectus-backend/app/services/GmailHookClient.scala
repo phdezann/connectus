@@ -11,13 +11,13 @@ import play.api.libs.json.Json
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class GmailHookClient @Inject()(appConf: AppConf, jobQueueActorClient: JobQueueActorClient, messageService: MessageService) {
+class GmailHookClient @Inject()(appConf: AppConf, actorsClient: ActorsClient, messageService: MessageService) {
 
   def scheduleTagInbox(notification: Notification) =
     parse(notification).flatMap(email =>
-      jobQueueActorClient.schedule(email, messageService.tagInbox(email)))
+      actorsClient.scheduleOnUserJobQueue(email, messageService.tagInbox(email)))
 
-  def parse(notification: Notification): Future[Email] = {
+  private def parse(notification: Notification): Future[Email] = {
     if (notification.subscription != appConf.getGmailSubscription) {
       ff(s"Subscription ${notification.subscription} does not match the environment configuration, please check it.")
     } else {

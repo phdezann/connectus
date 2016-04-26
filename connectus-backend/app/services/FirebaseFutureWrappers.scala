@@ -78,5 +78,20 @@ class FirebaseFutureWrappers @Inject()(environmentHelper: EnvironmentHelper) {
       }
     }
   }
+
+  def listenValueEvent(url: String, callback: DataSnapshot => Unit): FirebaseCancellable = {
+    val ref = new Firebase(url)
+
+    val listener = ref.addValueEventListener(new ValueEventListener {
+      override def onDataChange(snapshot: DataSnapshot) = if (environmentHelper.listenersEnabled) callback(snapshot)
+      override def onCancelled(firebaseError: FirebaseError) = {}
+    })
+
+    new FirebaseCancellable {
+      def cancel = {
+        ref.removeEventListener(listener)
+      }
+    }
+  }
 }
 

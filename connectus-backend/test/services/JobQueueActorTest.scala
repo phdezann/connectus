@@ -2,10 +2,9 @@ package services
 
 import java.time.LocalDateTime
 
-import akka.actor.{ActorRef, ActorSystem}
+import akka.actor.{ActorSystem, Props}
 import akka.pattern.ask
 import common._
-import play.api.inject.BindingKey
 import services.JobQueueActor.{Job, SkippedJob}
 import services.support.TestBase
 
@@ -19,8 +18,8 @@ class JobQueueActorTest extends TestBase {
     implicit val timeout = Timeouts.oneMinute
 
     val injector = getTestGuiceApplicationBuilder.build.injector
-    val jobQueueActor = injector.instanceOf(BindingKey(classOf[ActorRef]).qualifiedWith(JobQueueActor.actorName))
     val actorSystem = injector.instanceOf(classOf[ActorSystem])
+    val jobQueueActor = actorSystem.actorOf(identity(Props(injector.instanceOf[JobQueueActor])))
 
     case class JobResult(start: LocalDateTime, end: LocalDateTime)
     def enqueueNewJob: Future[Any] = {
@@ -42,8 +41,8 @@ class JobQueueActorTest extends TestBase {
     implicit val timeout = Timeouts.oneMinute
 
     val injector = getTestGuiceApplicationBuilder.build.injector
-    val jobQueueActor = injector.instanceOf(BindingKey(classOf[ActorRef]).qualifiedWith(JobQueueActor.actorName))
     val actorSystem = injector.instanceOf(classOf[ActorSystem])
+    val jobQueueActor = actorSystem.actorOf(identity(Props(injector.instanceOf[JobQueueActor])))
 
     def enqueueNewJob(value: String, key: String): Future[Any] =
       jobQueueActor ? Job(() => completeSoon(actorSystem, value), Some(key))

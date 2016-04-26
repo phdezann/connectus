@@ -31,20 +31,14 @@ object GmailRequests {
 }
 
 @Singleton
-class GmailThrottlerClient @Inject()(@Named(GmailThrottlerActor.actorName) googleClientThrottlerActor: ActorRef, userActorClient: UserActorClient) {
+class GmailThrottlerClient @Inject()(actorsClient: ActorsClient) {
   implicit val timeout = Timeouts.oneMinute
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
   def schedule[T](email: Email, request: GmailRequest[T], msgBuilder: (() => Future[_], Option[ActorRef]) => Any): Future[Option[T]] = {
     def execute[T](request: => GmailRequest[T]) = () => Future {concurrent.blocking {request.execute}}
-    userActorClient.getGmailThrottlerActor(email).flatMap { actorOpt =>
-      if (actorOpt.isDefined) {
-        (actorOpt.get ? msgBuilder(execute(request), None)).mapTo[Option[T]]
-      } else {
-        execute(request)().map(Option(_))
-      }
-    }
+    actorsClient.getGmailThrottlerActor(email).flatMap { actorRef => (actorRef ? msgBuilder(execute(request), None)).mapTo[Option[T]] }
   }
 
   def scheduleListHistory(email: Email, request: Gmail#Users#History#List) = schedule(email, request, ListHistoryRequestMsg.apply).map(_.get)

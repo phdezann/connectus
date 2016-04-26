@@ -343,14 +343,15 @@ class RepositoryListeners @Inject()(firebaseFutureWrappers: FirebaseFutureWrappe
     val contactUrl = s"${appConf.getFirebaseUrl}/${ContactsPath}/${Util.encode(email)}"
     def callback: (DataSnapshot) => Unit = {
       snapshot => {
-        firebaseFutureWrappers.getValueFuture(contactUrl).map { residentSnapshot =>
-          val residentId = residentSnapshot.getKey
-          val contacts: List[DataSnapshot] = residentSnapshot.getChildren.asScala.toList
-          onContactsModified(contacts.map { contact => Contact(Util.decode(contact.getKey), residentId) })
+        val residentsSnapshot = snapshot.getChildren.asScala.toList
+        onContactsModified(residentsSnapshot.flatMap { resident => {
+          val contactsSnapshot = resident.getChildren.asScala.toList
+          contactsSnapshot.map { contact => Contact(Util.decode(contact.getKey), resident.getKey) }
         }
+        })
       }
     }
-    firebaseFutureWrappers.listenChildEvent(contactUrl, callback, callback, callback)
+    firebaseFutureWrappers.listenValueEvent(contactUrl, callback)
   }
 
   def listenForOutboxMessages(email: Email, onMessageAdded: OutboxMessage => Unit): FirebaseCancellable = {

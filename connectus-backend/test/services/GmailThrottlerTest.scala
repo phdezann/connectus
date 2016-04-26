@@ -3,31 +3,20 @@ package services
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 
-import _root_.conf.AppConf
-import akka.actor.ActorRef
+import akka.actor.{ActorSystem, Props}
 import akka.pattern.ask
-import akka.util.Timeout
-import play.api.inject.{BindingKey, _}
 import services.GmailRequests._
 import services.support.TestBase
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration.{Duration, _}
+import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
 
 class GmailThrottlerTest extends TestBase {
   test("Throttle Gmail API calls") {
-    implicit val timeout = Timeout(5 seconds)
-
-    val appConf = mock[AppConf]
-    val userActorInitializer = mock[ActorsInitializer]
-
-    val injector = getTestGuiceApplicationBuilder
-      .overrides(bind[AppConf].toInstance(appConf))
-      .overrides(bind[ActorsInitializer].toInstance(userActorInitializer))
-      .build.injector
-
-    val gmailClientThrottlerActor = injector.instanceOf(BindingKey(classOf[ActorRef]).qualifiedWith(GmailThrottlerActor.actorName))
+    implicit val timeout = Timeouts.oneMinute
+    val injector = getTestGuiceApplicationBuilder.build.injector
+    val gmailClientThrottlerActor = injector.instanceOf[ActorSystem].actorOf(identity(Props(injector.instanceOf[GmailThrottlerActor])))
 
     val f1 = gmailClientThrottlerActor ? ListLabelsRequestMsg(() => Future {LocalDateTime.now()})
     val f2 = gmailClientThrottlerActor ? ListLabelsRequestMsg(() => Future {LocalDateTime.now()})
