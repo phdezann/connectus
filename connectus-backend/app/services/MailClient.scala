@@ -18,62 +18,62 @@ import scala.concurrent.ExecutionContext.Implicits.global
 class MailClient @Inject()(gmailClient: GmailClient) {
 
   def listLabels(email: Email): Future[List[GmailLabel]] = {
-    Logger.info(s"Listing all labels for ${email}")
+    Logger.info(s"Listing all labels for $email")
     gmailClient.listLabels(email).map(_.map(label => LabelMapper(label)))
   }
 
   def createLabel(email: Email, labelName: String): Future[GmailLabel] = {
-    Logger.info(s"Creation label with name ${labelName} for ${email}")
+    Logger.info(s"Creation label with name $labelName for $email")
     gmailClient.createLabel(email, labelName).map(label => LabelMapper(label))
   }
 
   def addLabels(email: Email, query: String, labels: List[GmailLabel]): Future[Unit] = {
-    Logger.info(s"Adding label ${labels} to threads from query '${query}' for ${email}")
+    Logger.info(s"Adding label $labels to threads from query '$query' for $email")
     if (labels.isEmpty) fs(()) else gmailClient.addLabels(email, query, labels.map(_.id)).map(_ => ())
   }
 
   def removeLabels(email: Email, query: String, labels: List[GmailLabel]): Future[Unit] = {
-    Logger.info(s"Removing label ${labels} to threads from query '${query}' for ${email}")
+    Logger.info(s"Removing label $labels to threads from query '$query' for $email")
     if (labels.isEmpty) fs(()) else gmailClient.removeLabels(email, query, labels.map(_.id)).map(_ => ())
   }
 
   def deleteLabel(email: Email, label: GmailLabel) = {
-    Logger.info(s"Deleting label ${label} for ${email}")
+    Logger.info(s"Deleting label $label for $email")
     gmailClient.deleteLabel(email, label.id)
   }
 
   def listThreads(email: Email, query: String): Future[List[GmailThread]] = {
-    Logger.info(s"Listing threads from query '${query}' for ${email}")
+    Logger.info(s"Listing threads from query '$query' for $email")
     gmailClient.listThreads(email, query).map(_.map(thread => ThreadMapper(thread)))
   }
 
   def listMessagesOfThread(email: Email, threadId: String, allLabels: List[GmailLabel]): Future[List[GmailMessage]] = {
-    Logger.info(s"Listing messages of thread with id ${threadId} for ${email}")
+    Logger.info(s"Listing messages of thread with id $threadId for $email")
     gmailClient.listMessagesOfThread(email, threadId).map(_.map(message => MessageMapper(message, allLabels)))
   }
 
   def getMessage(email: Email, messageId: String, allLabels: List[GmailLabel]): Future[GmailMessage] = {
-    Logger.info(s"Getting message with id ${messageId} for ${email}")
+    Logger.info(s"Getting message with id $messageId for $email")
     gmailClient.getMessage(email, messageId).map(message => MessageMapper(message, allLabels))
   }
 
   def watch(email: Email, labelIds: List[String]) = {
-    Logger.info(s"Start watching for ${email}")
+    Logger.info(s"Start watching for $email")
     gmailClient.watch(email, labelIds).map(response => WatchMapper(response))
   }
 
   def reply(email: Email, threadId: String, toAddress: String, personal: String, subject: String, content: String, allLabels: List[GmailLabel]) = {
-    Logger.info(s"Reply to address ${toAddress} and threadId ${threadId} for ${email}")
+    Logger.info(s"Reply to address $toAddress and threadId $threadId for $email")
     gmailClient.reply(email, threadId, toAddress, personal, subject, content)
   }
 
   def getLastHistoryId(email: Email, startHistoryId: BigInt): Future[BigInt] = {
-    Logger.info(s"Listing history with startHistoryId ${startHistoryId} for ${email}")
+    Logger.info(s"Getting last history with startHistoryId $startHistoryId for $email")
     gmailClient.getLastHistory(email, startHistoryId).map(_.getHistoryId)
   }
 
   def getAttachment(email: Email, messageId: String, attachmentId: String): Future[GmailAttachmentData] = {
-    Logger.info(s"Getting attachment with messageId ${messageId} and attachmentId ${attachmentId} for ${email}")
+    Logger.info(s"Getting attachment with messageId $messageId and attachmentId $attachmentId for $email")
     gmailClient.getAttachment(email, messageId, attachmentId).map(AttachmentMapper(_))
   }
 }
