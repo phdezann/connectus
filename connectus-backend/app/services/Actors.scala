@@ -130,7 +130,7 @@ class UserSupervisorActor @Inject()(@Assisted email: Email,
   gmailWatcherActorRef ! GmailWatcherActor.StartWatch(email)
 
   actorsClient.scheduleOnUserJobQueue(email, messageService.tagInbox(email))
-    .onSuccess { case result => Logger.info(s"Result of tagging inbox after new user setup $result") }
+    .onSuccess { case result => Logger.info(s"Result of tagging inbox after new user setup $result for $email") }
 
   Logger.info(s"Added user $email")
 
@@ -190,8 +190,8 @@ class ContactActor @Inject()(messageService: MessageService, actorsClient: Actor
   override def receive: Receive = {
     case ContactActor.AllContacts(email, contacts) =>
       Logger.info(s"AllContacts msg received in contact actor for $email")
-      actorsClient.scheduleOnUserJobQueue(email, messageService.tagInbox(email, true), Some("contact"))
-        .onSuccess { case result => Logger.info(s"Result of tagging inbox after contact modification $result") }
+      actorsClient.scheduleOnUserJobQueue(email, messageService.tagInbox(email), Some("contact"))
+        .onSuccess { case result => Logger.info(s"Result of tagging inbox after contact modification $result for $email") }
   }
 }
 
