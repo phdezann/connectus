@@ -37,6 +37,7 @@ public class LoginActivity extends ActivityBase {
     @Inject
     LoginOrchestrator loginOrchestrator;
 
+    boolean currentlySigningUp;
     Firebase.AuthStateListener loginAuthListener;
     ProgressDialog loginProgressDialog;
 
@@ -61,16 +62,21 @@ public class LoginActivity extends ActivityBase {
     @Override
     protected void onResume() {
         super.onResume();
-        startListeningForLogin();
+        if (!currentlySigningUp) {
+            startListeningForLogin();
+        }
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        stopListeningForLogin();
+        if (!currentlySigningUp) {
+            stopListeningForLogin();
+        }
     }
 
     public void onSignInGooglePressed() {
+        currentlySigningUp = true;
         loginProgressDialog.show();
         int permissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.GET_ACCOUNTS);
         if (permissionCheck == PackageManager.PERMISSION_GRANTED) {
@@ -142,6 +148,7 @@ public class LoginActivity extends ActivityBase {
     }
 
     private void onLoginSuccess() {
+        currentlySigningUp = false;
         loginProgressDialog.dismiss();
         toaster.toast(getString(R.string.on_logging_success));
         startMainActivity();
@@ -155,6 +162,7 @@ public class LoginActivity extends ActivityBase {
     }
 
     private void onLoginError(Optional<Throwable> e) {
+        currentlySigningUp = false;
         loginProgressDialog.dismiss();
         toaster.toast(getString(R.string.on_login_error));
         if (e.isPresent()) {
