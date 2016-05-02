@@ -33,7 +33,7 @@ public class ThreadAdapter extends FirebaseListAdapter<GmailThread> {
         snippet.setText(thread.getSnippet());
 
         Optional<Resident> residentOpt = thread.getLastMessage().getResidentOpt();
-        if (residentOpt.isPresent()) {
+        if (residentOpt.isPresent() && resident != null) {
             resident.setText(residentOpt.get().getName());
         }
     }

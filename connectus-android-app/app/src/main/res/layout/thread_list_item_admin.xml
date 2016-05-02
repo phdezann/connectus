@@ -12,26 +12,28 @@
         android:padding="5dp">
 
         <TextView
+            android:id="@+id/id"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <TextView
             android:id="@+id/last_modification"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textSize="@dimen/resident_msg_size" />
+            android:layout_height="wrap_content" />
 
         <TextView
             android:id="@+id/snippet"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textSize="@dimen/resident_msg_size" />
+            android:layout_height="wrap_content" />
 
     </LinearLayout>
 
     <TextView
-        android:id="@+id/id"
+        android:id="@+id/resident"
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="2"
         android:gravity="right|center_vertical"
-        android:padding="5dp"
-        android:textSize="@dimen/resident_msg_size" />
+        android:padding="5dp" />
 
 </LinearLayout>

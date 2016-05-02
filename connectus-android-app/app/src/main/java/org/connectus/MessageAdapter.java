@@ -71,9 +71,11 @@ public class MessageAdapter extends FirebaseListAdapter<GmailMessage> {
 
     @Override
     protected void populateView(View view, GmailMessage gmailMessage, int position) {
+        TextView from = (TextView) view.findViewById(R.id.from);
         TextView date = (TextView) view.findViewById(R.id.date);
         TextView content = (TextView) view.findViewById(R.id.content);
 
+        from.setText(gmailMessage.getFrom());
         date.setText(dateFormatter.toPrettyString(gmailMessage.getParsedDate()));
         content.setText(StringUtils.abbreviate(gmailMessage.getContent(), 50));
 

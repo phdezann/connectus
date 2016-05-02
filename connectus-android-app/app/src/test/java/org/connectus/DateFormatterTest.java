@@ -39,8 +39,8 @@ public class DateFormatterTest extends RobolectricTestBase {
         assertThat(asPrettyString("2015-07-01T06:29:00-07:00", now)).isEqualTo("Il y a 1 minute");
         assertThat(asPrettyString("2015-07-01T06:22:40-07:00", now)).isEqualTo("Il y a 8 minutes");
         assertThat(asPrettyString("2015-06-30T06:22:40-07:00", now)).isEqualTo("Hier à 15:22");
-        assertThat(asPrettyString("2015-06-29T06:22:40-07:00", now)).isEqualTo("Le 29/06/15 à 15:22");
-        assertThat(asPrettyString("2015-06-15T06:22:40-07:00", now)).isEqualTo("Le 15/06/15 à 15:22");
+        assertThat(asPrettyString("2015-06-29T06:22:40-07:00", now)).isEqualTo("29/06/15 à 15:22");
+        assertThat(asPrettyString("2015-06-15T06:22:40-07:00", now)).isEqualTo("15/06/15 à 15:22");
         assertThat(asPrettyString("2015-07-01T09:55:51Z[UTC]", now)).isEqualTo("11:55");
     }
 
