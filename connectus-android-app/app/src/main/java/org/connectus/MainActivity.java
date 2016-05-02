@@ -44,6 +44,7 @@ public class MainActivity extends ActivityBase {
         taggingProgressDialog = new ProgressDialog(this);
         taggingProgressDialog.setMessage(getString(R.string.tagging_progress_dialog_message));
         taggingProgressDialog.setCancelable(false);
+        taggingProgressDialog.show();
     }
 
     public void addResidentAndAddContact(String residentName) {
