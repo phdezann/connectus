@@ -44,4 +44,8 @@ class AppController @Inject()(appConf: AppConf, gmailHookClient: GmailHookClient
       })
     }
   }
+
+  def maintenance = Action {
+    Ok(views.html.maintenance())
+  }
 }
