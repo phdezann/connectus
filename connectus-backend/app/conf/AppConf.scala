@@ -12,4 +12,5 @@ class AppConf @Inject()(configuration: Configuration) {
   def getFirebaseJwtToken = configuration.getString("application.firebase.jwt.token").get
   def getWebComponentClientId = configuration.getString("application.auth.google.component.web.clientid").get
   def getAndroidAppComponentClientId = configuration.getString("application.auth.google.component.androidapp.clientid").get
+  def getMaintenanceMode = configuration.getBoolean("application.maintenance.mode").fold(false)(identity)
 }

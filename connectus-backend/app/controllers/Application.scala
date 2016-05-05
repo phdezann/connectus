@@ -2,6 +2,7 @@ package controllers
 
 import javax.inject.Inject
 
+import com.google.inject.Provider
 import common._
 import conf.AppConf
 import model.{Notification, _}
@@ -12,6 +13,11 @@ import services._
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class AppController @Inject()(appConf: AppConf, gmailHookClient: GmailHookClient) extends Controller {
+
+  if (appConf.getMaintenanceMode) {
+    // https://devcenter.heroku.com/articles/error-pages#customize-pages
+    Logger.info("This app serves static resources when the main instance goes offline")
+  }
 
   def index = Action {
     Ok(views.html.index(null))
@@ -29,7 +35,11 @@ class AppController @Inject()(appConf: AppConf, gmailHookClient: GmailHookClient
         Logger.error(errors.toString)
         fs(PreconditionFailed)
       }, notification => {
-        gmailHookClient.scheduleTagInbox(notification).onSuccess { case result => Logger.info(s"Result of tagging inbox after gmail notification $result") }
+        if (appConf.getMaintenanceMode) {
+          Logger.error("Gmail notification should not be received by this app")
+        } else {
+          gmailHookClient.scheduleTagInbox(notification).onSuccess { case result => Logger.info(s"Result of tagging inbox after gmail notification $result") }
+        }
         fs(Ok)
       })
     }

@@ -7,3 +7,5 @@ ssh-keyscan heroku.com > ~/.ssh/known_hosts
 echo 'IdentityFile ~/.ssh/id_rsa-ci-4-heroku' > ~/.ssh/config
 git remote add heroku-connectusnow git@heroku.com:connectusnow.git || true
 git push heroku-connectusnow master -f
+git remote add heroku-connectusnow-maintenance git@heroku.com:connectusnow-maintenance.git || true
+git push heroku-connectusnow-maintenance master -f

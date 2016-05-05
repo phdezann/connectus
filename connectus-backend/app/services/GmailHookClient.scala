@@ -1,6 +1,6 @@
 package services
 
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 
 import common._
 import conf.AppConf
@@ -11,6 +11,7 @@ import play.api.libs.json.Json
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
+@Singleton
 class GmailHookClient @Inject()(appConf: AppConf, actorsClient: ActorsClient, messageService: MessageService) {
 
   def scheduleTagInbox(notification: Notification) =

@@ -8,6 +8,7 @@ import akka.util.Timeout
 import com.google.inject.Provider
 import com.google.inject.assistedinject.Assisted
 import common._
+import conf.AppConf
 import model.{AttachmentRequest, Contact, OutboxMessage, Resident}
 import play.api.Logger
 import play.api.inject.Injector
@@ -28,9 +29,14 @@ object Timeouts {
 }
 
 @Singleton
-class ActorsClient @Inject()(@Named(SuperSupervisorActor.actorName) superSupervisorActorProvider: Provider[ActorRef]) {
-  val superSupervisorActor = superSupervisorActorProvider.get
+class ActorsClient @Inject()(appConf: AppConf, @Named(SuperSupervisorActor.actorName) superSupervisorActorProvider: Provider[ActorRef]) {
+
+  var superSupervisorActor: ActorRef = _
   implicit val timeout = Timeouts.oneMinute
+
+  if (!appConf.getMaintenanceMode) {
+    superSupervisorActor = superSupervisorActorProvider.get
+  }
 
   def scheduleOnUserJobQueue(email: Email, job: => Future[_], key: Option[String] = None): Future[Try[_]] = getJobQueueActor(email)
     .flatMap(_ ? Job(() => job, key)).mapTo[Try[_]]
