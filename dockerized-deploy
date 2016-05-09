@@ -26,7 +26,7 @@ docker run                                                            \
     -v $APP_DIR:/workspace                                            \
     -w /workspace/connectus-android-app                               \
     connectus-build                                                   \
-    upload-release-description
+    /bin/bash -c "upload-release-description && upload-apk-to-dropbox"
 docker run                                             \
     --rm                                               \
     -e HEROKU_SSH_KEY_PATH=/private/id_rsa-ci-4-heroku \

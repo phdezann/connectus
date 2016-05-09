@@ -6,13 +6,13 @@ ARG USER_GID=1000
 ADD bin/accept-apt-repository /usr/local/bin/
 ADD bin/accept-oracle-licence /usr/local/bin/
 
-RUN apt-get update -y -q                                                                              \
-    && apt-get install -y -q wget curl expect git-core net-tools socat dosfstools iputils-ping netcat \
-    && apt-get install -y -q software-properties-common                                               \
-    && accept-apt-repository add-apt-repository ppa:webupd8team/java && apt-get update -y -q          \
-    && accept-oracle-licence apt-get install -y -q oracle-java7-installer oracle-java8-installer      \
-    && apt-get install -y -q gcc-multilib lib32ncurses5 lib32z1 mesa-utils pciutils                   \
-    && apt-get clean                                                                                  \
+RUN apt-get update -y -q                                                                                 \
+    && apt-get install -y -q wget curl expect git-core net-tools socat dosfstools iputils-ping netcat jq \
+    && apt-get install -y -q software-properties-common                                                  \
+    && accept-apt-repository add-apt-repository ppa:webupd8team/java && apt-get update -y -q             \
+    && accept-oracle-licence apt-get install -y -q oracle-java7-installer oracle-java8-installer         \
+    && apt-get install -y -q gcc-multilib lib32ncurses5 lib32z1 mesa-utils pciutils                      \
+    && apt-get clean                                                                                     \
     && rm -rf /var/lib/apt/lists/*
 
 ENV JAVA8_HOME /usr/lib/jvm/java-8-oracle
@@ -49,5 +49,6 @@ ADD bin/init-emulator /usr/local/bin/
 ADD bin/debug-connected-android-test /usr/local/bin/
 ADD bin/deploy-to-heroku /usr/local/bin/
 ADD bin/upload-release-description /usr/local/bin/
+ADD bin/upload-apk-to-dropbox /usr/local/bin/
 
 ADD conf/android-sdk /home/connectus/android-sdk-conf/
