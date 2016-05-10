@@ -1,56 +1,121 @@
-@(message: String)
+@()
 
-@main("GettingStarted") {
+@contact() = {
+<a href="http://www.google.com/recaptcha/mailhide/d?k=01thWG8xWZFiR4hbuAIOzp_g==&amp;c=u5buTo1fujKGKSzfyP8NEGPcXiENKqELUL7I_1BjHr0="
+   onclick="window.open('http://www.google.com/recaptcha/mailhide/d?k\x3d01thWG8xWZFiR4hbuAIOzp_g\x3d\x3d\x26c\x3du5buTo1fujKGKSzfyP8NEGPcXiENKqELUL7I_1BjHr0\x3d', '', 'toolbar=0,scrollbars=0,location=0,statusbar=0,menubar=0,resizable=0,width=500,height=300'); return false;"
+   title="Afficher cette adresse e-mail">contactez-nous</a>
+}
 
-<div class="jumbotron text-center">
+@main("Connectus") {
+
+<header>
   <div class="container">
-    <a href="/" class="lang-logo">
-      <img src="@routes.Assets.at("images/lang-logo.png")">
-    </a>
-    <h1>Getting Started with Scala/Play on Heroku</h1>
-    <p>This is a sample Play application deployed to Heroku. It's a reasonably simple app - but a good foundation for understanding how to get the most out of the Heroku platform.</p>
-    <p>Hello World you!</p>
-    <a type="button" class="btn btn-lg btn-default" href="https://devcenter.heroku.com/articles/getting-started-with-scala"><span class="glyphicon glyphicon-flash"></span> Getting Started with Scala/Play</a>
-    <a type="button" class="btn btn-lg btn-primary" href="https://github.com/heroku/scala-getting-started"><span class="glyphicon glyphicon-download"></span> Source on GitHub</a>
+    <div class="intro-text">
+      <div class="row">
+        <div class="col-md-8 col-sm-offset-2">
+          <div id="intro-connectus" class="intro-lead-in"><strong>Connectus</strong> permet aux résidents de maison de retraite de recevoir et d'envoyer des
+            courriels.
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
-</div>
-<div class="container">
-  @if(message != null){
-  <div class="alert alert-success text-center" role="alert">
-    @message
-  </div>
-  }
-  <div class="alert alert-info text-center" role="alert">
-    To deploy your own copy, and learn the fundamentals of the Heroku platform, head over to the <a href="https://devcenter.heroku.com/articles/getting-started-with-scala" class="alert-link">Getting Started with Scala/Play on Heroku</a> tutorial.
-  </div>
-  <hr>
-  <div class="row">
-    <div class="col-md-6">
-      <h3><span class="glyphicon glyphicon-info-sign"></span> How this sample app works</h3>
-      <ul>
-        <li>This app was deployed to Heroku, either using Git or by using <a href="https://github.com/heroku/scala-getting-started">Heroku Button</a> on the repository.</li>
+</header>
 
-        <li>When Heroku received the source code, it grabbed all the dependencies in the <a href="https://github.com/heroku/scala-getting-started/blob/master/build.sbt">build.sbt</a>.</li>
-        <li>The platform then spins up a dyno, a lightweight container that provides an isolated environment in which the slug can be mounted and executed.</li>
-        <li>You can scale your app, manage it, and deploy over <a href="https://addons.heroku.com/">150 add-on services</a>, from the Dashboard or CLI.</li>
-        <li>Check out the <a href="https://devcenter.heroku.com/articles/getting-started-with-scala">Getting Started</a> guide to learn more!</li>
-      </ul>
+<section class="bg-light-gray">
+  <div class="container">
+    <div class="row">
+      <div class="col-md-6 col-md-offset-3">
+        <p>Lancé en mars 2016, <strong>Connectus</strong> est une initiative dont l'objectif est de réduire l'isolement social des résidents de maison de retraite en
+          créant une application sur tablette tactile spécifique à leurs besoins.</p>
+        <p>Le courriel est un moyen de communication privilégié pour les familles et amis des résidents. L'application exploite ainsi les possibilités offertes
+          par l'API Gmail pour recevoir et envoyer des messages.</p>
+        <p>Les messages reçus sur l'adresse email de l'établissement sont ensuite distribués aux résidents en fonction de critères prédéfinis. Les résidents peuvent
+          ensuite répondre et ainsi échanger avec des personnes extérieures.</p>
+        <p>La première maquette développée et testée par un établissement pilote indique que le concept est viable, cependant de nombreuses actions sont
+          nécessaires pour distribuer l'application plus largement. Si vous souhaitez nous aider dans notre démarche @contact().</p>
+      </div>
     </div>
-    <div class="col-md-6">
-      <h3><span class="glyphicon glyphicon-link"></span> Helpful Links</h3>
-      <ul>
-        <li><a href="https://www.heroku.com/home">Heroku</a></li>
-        <li><a href="https://devcenter.heroku.com/">Heroku Dev Center</a></li>
-        <li><a href="https://devcenter.heroku.com/articles/getting-started-with-scala">Getting Started with Scala/Play on Heroku</a></li>
-        <li><a href="https://devcenter.heroku.com/articles/deploying-scala">Deploying Scala Apps on Heroku</a></li>
-        <li><a href="https://devcenter.heroku.com/articles/play-support">Heroku Play Framework Support</a></li>
-        <li><a href="https://devcenter.heroku.com/articles/scala-support">Heroku Scala Support</a></li>
-      </ul>
-    </div>
-  </div> <!-- row -->
-   <div class="alert alert-info text-center" role="alert">
-    Please do work through the Getting Started guide, even if you do know how to build such an application.  The guide covers the basics of working with Heroku, and will familiarize you with all the concepts you need in order to build and deploy your own apps.
   </div>
-</div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="row text-center">
+      <div class="col-sm-3">
+        <span class="fa-stack fa-4x">
+            <i class="fa fa-circle fa-stack-2x text-primary"></i>
+            <i class="fa fa-envelope-o fa-stack-1x fa-inverse"></i>
+        </span>
+        <h4 class="service-heading">Courriel</h4>
+        <p class="text-muted">Une adresse email unique par établissement simplifie les échanges entre résidents et non-résidents.</p>
+      </div>
+      <div class="col-sm-3">
+        <span class="fa-stack fa-4x">
+            <i class="fa fa-circle fa-stack-2x text-primary"></i>
+            <i class="fa fa-tablet fa-stack-1x fa-inverse"></i>
+        </span>
+        <h4 class="service-heading">Tablette</h4>
+        <p class="text-muted">La tablette tactile est un support adapté pour les résidents et partageable au sein d'un même établissement.</p>
+      </div>
+      <div class="col-sm-3">
+        <span class="fa-stack fa-4x">
+            <i class="fa fa-circle fa-stack-2x text-primary"></i>
+            <i class="fa fa-arrows-alt fa-stack-1x fa-inverse"></i>
+        </span>
+        <h4 class="service-heading">Ergonomie adaptée</h4>
+        <p class="text-muted">Les interfaces graphiques sont spécialement conçues pour adresser les besoins spécifiques des résidents.</p>
+      </div>
+      <div class="col-sm-3">
+        <span class="fa-stack fa-4x">
+            <i class="fa fa-circle fa-stack-2x text-primary"></i>
+            <i class="fa fa-hand-peace-o fa-stack-1x fa-inverse"></i>
+        </span>
+        <h4 class="service-heading">Gratuit</h4>
+        <p class="text-muted">L'outil est entièrement gratuit et sans publicité.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="bg-light-gray">
+  <div class="container">
+    <div class="row text-center">
+      <div class="col-sm-4 col-sm-offset-4">
+        <h4>Espace membre</h4>
+      </div>
+    </div>
+    <div class="row text-center google-play">
+      <div class="col-sm-4 col-sm-offset-4">
+        <div class="center-block" style="max-width: 200px">
+          <a href="https://play.google.com/apps/testing/org.connectus" target="_blank">
+            <img src="assets/images/logos/google-play-badge.png" class="img-responsive" alt="Google Play">
+          </a>
+        </div>
+        <p class="text-warning">(accés restreint)</p>
+      </div>
+    </div>
+    <div class="row text-center">
+      <div class="col-sm-2 col-sm-offset-2">
+        <a href="https://connectusnow.slack.com/messages/general/" target="_blank">
+          <img src="assets/images/logos/slack.png" class="img-responsive center-block" alt="Slack">
+        </a>
+        <h5>Slack</h5>
+      </div>
+      <div class="col-sm-2 col-sm-offset-1">
+        <a href="https://trello.com/b/AJoNWzYn/connectus" target="_blank">
+          <img src="assets/images/logos/trello.png" class="img-responsive center-block" alt="Trello">
+        </a>
+        <h5>Trello</h5>
+      </div>
+      <div class="col-sm-2 col-sm-offset-1">
+        <a href="https://github.com/phdezann/connectus" target="_blank">
+          <img src="assets/images/logos/github.png" class="img-responsive center-block" alt="GitHub">
+        </a>
+        <h5>GitHub</h5>
+      </div>
+    </div>
+  </div>
+</section>
 
 }

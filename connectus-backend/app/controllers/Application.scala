@@ -20,7 +20,7 @@ class AppController @Inject()(implicit exec: ExecutionContext, appConf: AppConf,
   }
 
   def index = Action {
-    Ok(views.html.index(null))
+    Ok(views.html.index())
   }
 
   def sync = Action.async(BodyParsers.parse.default) { request =>
