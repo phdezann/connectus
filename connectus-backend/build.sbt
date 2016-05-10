@@ -8,6 +8,8 @@ scalaVersion := "2.11.7"
 
 resolvers += "scalaz-bintray" at "https://dl.bintray.com/scalaz/releases"
 
+pipelineStages := Seq(gzip)
+
 libraryDependencies ++= Seq(
   "org.webjars" % "bootstrap" % "3.3.5",
   "org.webjars" % "requirejs" % "2.1.19",
@@ -22,6 +24,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-contrib" % "2.3.11",
   "org.scalatest" %% "scalatest" % "2.2.6" % "test",
   cache,
+  filters,
   ws,
   specs2 % Test
 )
