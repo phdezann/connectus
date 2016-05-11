@@ -7,12 +7,11 @@ import com.google.api.client.auth.oauth2.StoredCredential
 import com.google.api.client.util.store.DataStore
 import services.support.{SCDataStore, SCRepositoryDataStoreFactory}
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.language.postfixOps
 
-class RepositoryDataStoreFactory @Inject()(repository: Repository) extends SCRepositoryDataStoreFactory {
+class RepositoryDataStoreFactory @Inject()(repository: Repository, implicit val exec: ExecutionContext) extends SCRepositoryDataStoreFactory {
   override def createStoredCredentialDataStore(id: String): DataStore[StoredCredential] = new SCDataStore(this, id) {
     // this method needs to be implemented when tokens are refreshed by Credential.refreshToken()
     override def set(key: String, value: StoredCredential): DataStore[StoredCredential] = {

@@ -1,8 +1,7 @@
 package controllers
 
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 
-import com.google.inject.Provider
 import common._
 import conf.AppConf
 import model.{Notification, _}
@@ -10,9 +9,10 @@ import play.api.Logger
 import play.api.mvc._
 import services._
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.ExecutionContext
 
-class AppController @Inject()(appConf: AppConf, gmailHookClient: GmailHookClient) extends Controller {
+@Singleton
+class AppController @Inject()(implicit exec: ExecutionContext, appConf: AppConf, gmailHookClient: GmailHookClient) extends Controller {
 
   if (appConf.getMaintenanceMode) {
     // https://devcenter.heroku.com/articles/error-pages#customize-pages

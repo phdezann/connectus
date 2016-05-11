@@ -4,8 +4,8 @@ import javax.inject.{Inject, Singleton}
 
 import common._
 import model.{Contact, GmailLabel, Resident}
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+
+import scala.concurrent.{ExecutionContext, Future}
 
 object LabelService {
   val InboxLabelName = "INBOX"
@@ -34,7 +34,7 @@ object LabelService {
 }
 
 @Singleton
-class LabelService @Inject()(mailClient: MailClient, repository: Repository) {
+class LabelService @Inject()(implicit exec: ExecutionContext, mailClient: MailClient, repository: Repository) {
 
   def getOrCreateLabel(email: Email, resident: Resident, allLabels: List[GmailLabel]): Future[GmailLabel] = {
     val filter: (GmailLabel) => Boolean = (label) => resident.labelId.fold(false)(labelId => label.id == labelId)

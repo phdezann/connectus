@@ -11,11 +11,10 @@ import model.{GmailAttachment, GmailAttachmentData, GmailLabel, GmailMessage, Gm
 import play.api.Logger
 
 import scala.collection.JavaConverters._
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class MailClient @Inject()(gmailClient: GmailClient) {
+class MailClient @Inject()(implicit exec: ExecutionContext, gmailClient: GmailClient) {
 
   def listLabels(email: Email): Future[List[GmailLabel]] = {
     Logger.info(s"Listing all labels for $email")

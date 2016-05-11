@@ -18,8 +18,7 @@ import services.FirebaseConstants._
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable.TreeMap
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{ExecutionContext, Future}
 
 object FirebaseConstants {
   val AuthorizationCodesPath = "authorization_codes"
@@ -62,7 +61,7 @@ object Repository {
 }
 
 @Singleton
-class Repository @Inject()(firebaseFutureWrappers: FirebaseFutureWrappers, appConf: AppConf) {
+class Repository @Inject()(implicit exec: ExecutionContext, firebaseFutureWrappers: FirebaseFutureWrappers, appConf: AppConf) {
 
   def connect = firebaseFutureWrappers.connect(appConf.getFirebaseUrl, appConf.getFirebaseJwtToken)
 

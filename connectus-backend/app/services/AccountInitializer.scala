@@ -7,8 +7,7 @@ import common._
 import services.AccountInitializer.TradeSuccess
 import services.Repository.AuthorizationCodes
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 object AccountInitializer {
   case class TradeSuccess(email: Email, authorizationCodes: AuthorizationCodes, googleTokenResponse: GoogleTokenResponse)
@@ -16,7 +15,7 @@ object AccountInitializer {
 }
 
 @Singleton
-class AccountInitializer @Inject()(googleAuthorization: GoogleAuthorization, androidIdVerifier: AndroidIdVerifier, repository: Repository) {
+class AccountInitializer @Inject()(implicit exec: ExecutionContext, googleAuthorization: GoogleAuthorization, androidIdVerifier: AndroidIdVerifier, repository: Repository) {
 
   def addUser(authorizationCodes: AuthorizationCodes) = {
     val action = trade(authorizationCodes)

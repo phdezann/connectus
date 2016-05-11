@@ -8,11 +8,10 @@ import model.{GmailNotificationMessage, Notification}
 import org.apache.commons.codec.binary.StringUtils
 import play.api.libs.json.Json
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class GmailHookClient @Inject()(appConf: AppConf, actorsClient: ActorsClient, messageService: MessageService) {
+class GmailHookClient @Inject()(implicit exec: ExecutionContext, appConf: AppConf, actorsClient: ActorsClient, messageService: MessageService) {
 
   def scheduleTagInbox(notification: Notification) =
     parse(notification).flatMap(gmailNotificationMessage => {

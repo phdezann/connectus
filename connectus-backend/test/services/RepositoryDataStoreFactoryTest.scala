@@ -5,10 +5,12 @@ import common._
 import org.scalatest.FunSuiteLike
 import org.specs2.mock.Mockito
 
+import scala.concurrent.ExecutionContext
+
 class RepositoryDataStoreFactoryTest extends FunSuiteLike with Mockito {
   test("store credentials while refreshing access token") {
     val repository = mock[Repository]
-    val credentialDataStore = new RepositoryDataStoreFactory(repository).createStoredCredentialDataStore("id")
+    val credentialDataStore = new RepositoryDataStoreFactory(repository, ExecutionContext.global).createStoredCredentialDataStore("id")
     val accountId = "me@gmail.com"
 
     val credential = new StoredCredential

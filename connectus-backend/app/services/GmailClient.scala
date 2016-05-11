@@ -13,12 +13,11 @@ import com.google.api.services.gmail.model._
 import com.google.api.services.gmail.{Gmail, GmailRequest}
 
 import scala.collection.JavaConverters._
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
 import scala.language.postfixOps
 
 @Singleton
-class GmailClient @Inject()(appConf: AppConf, googleAuthorization: GoogleAuthorization, gmailThrottlerClient: GmailThrottlerClient) {
+class GmailClient @Inject()(implicit exec: ExecutionContext, appConf: AppConf, googleAuthorization: GoogleAuthorization, gmailThrottlerClient: GmailThrottlerClient) {
 
   private def seq[R <: GmailRequest[T], T](requests: List[R], mapper: R => Future[T]): Future[List[T]] = {
     val results = requests.map(mapper(_))

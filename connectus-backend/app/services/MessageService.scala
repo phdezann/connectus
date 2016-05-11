@@ -6,11 +6,10 @@ import common._
 import model.{AttachmentRequest, GmailLabel, OutboxMessage, Resident, ThreadBundle}
 import play.api.Logger
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class MessageService @Inject()(mailClient: MailClient, labelService: LabelService, repository: Repository, historyIdService: HistoryIdService) {
+class MessageService @Inject()(implicit exec: ExecutionContext, mailClient: MailClient, labelService: LabelService, repository: Repository, historyIdService: HistoryIdService) {
 
   def tagInbox(email: Email, receivedHistoryId: BigInt): Future[Option[BigInt]] = {
     Logger.info(s"Initiating tagInbox with receivedHistoryId=$receivedHistoryId for $email")
@@ -89,7 +88,7 @@ class MessageService @Inject()(mailClient: MailClient, labelService: LabelServic
 }
 
 @Singleton
-class HistoryIdService @Inject()(mailClient: MailClient, actorsClient: ActorsClient) {
+class HistoryIdService @Inject()(implicit exec: ExecutionContext, mailClient: MailClient, actorsClient: ActorsClient) {
 
   def getLocalHistoryId(email: Email): Future[Option[BigInt]] = actorsClient.getHistoryId(email)
 

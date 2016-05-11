@@ -17,8 +17,7 @@ import services.HistoryIdHolderActor.SetHistoryId
 import services.JobQueueActor.Job
 import services.Repository.AuthorizationCodes
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.reflect.ClassTag
@@ -29,7 +28,7 @@ object Timeouts {
 }
 
 @Singleton
-class ActorsClient @Inject()(appConf: AppConf, @Named(SuperSupervisorActor.actorName) superSupervisorActorProvider: Provider[ActorRef]) {
+class ActorsClient @Inject()(implicit exec: ExecutionContext, appConf: AppConf, @Named(SuperSupervisorActor.actorName) superSupervisorActorProvider: Provider[ActorRef]) {
 
   var superSupervisorActor: ActorRef = _
   implicit val timeout = Timeouts.oneMinute
@@ -61,7 +60,8 @@ object SuperSupervisorActor {
   case class UserRemoved(email: Email)
 }
 
-class SuperSupervisorActor @Inject()(userSupervisorActorFactory: UserSupervisorActor.Factory,
+class SuperSupervisorActor @Inject()(implicit exec: ExecutionContext,
+                                     userSupervisorActorFactory: UserSupervisorActor.Factory,
                                      repository: Repository,
                                      environmentHelper: EnvironmentHelper,
                                      accountInitializer: AccountInitializer,
@@ -108,7 +108,8 @@ object UserSupervisorActor {
   }
 }
 
-class UserSupervisorActor @Inject()(@Assisted email: Email,
+class UserSupervisorActor @Inject()(implicit exec: ExecutionContext,
+                                    @Assisted email: Email,
                                     actorsClient: ActorsClient,
                                     messageService: MessageService,
                                     repositoryListeners: RepositoryListeners,
@@ -169,7 +170,7 @@ object ResidentActor {
   case class ResidentRemoved(email: Email, resident: Resident)
 }
 
-class ResidentActor @Inject()(tagger: LabelService, actorsClient: ActorsClient) extends Actor with ActorLogging {
+class ResidentActor @Inject()(implicit exec: ExecutionContext, tagger: LabelService, actorsClient: ActorsClient) extends Actor with ActorLogging {
 
   def sync(email: Email) =
     for {
@@ -192,7 +193,7 @@ object ContactActor {
   case class AllContacts(email: Email, contacts: List[Contact])
 }
 
-class ContactActor @Inject()(messageService: MessageService, actorsClient: ActorsClient) extends Actor with ActorLogging {
+class ContactActor @Inject()(implicit exec: ExecutionContext, messageService: MessageService, actorsClient: ActorsClient) extends Actor with ActorLogging {
   override def receive: Receive = {
     case ContactActor.AllContacts(email, contacts) =>
       Logger.info(s"AllContacts msg received in contact actor for $email")
@@ -206,7 +207,7 @@ object OutboxActor {
   case class OutboxMessageAdded(email: Email, outboxMessage: OutboxMessage)
 }
 
-class OutboxActor @Inject()(messageService: MessageService, actorsClient: ActorsClient) extends Actor with ActorLogging {
+class OutboxActor @Inject()(implicit exec: ExecutionContext, messageService: MessageService, actorsClient: ActorsClient) extends Actor with ActorLogging {
   override def receive: Receive = {
     case OutboxActor.OutboxMessageAdded(email, outboxMessage) =>
       actorsClient.scheduleOnUserJobQueue(email, messageService.reply(email, outboxMessage))
@@ -219,7 +220,7 @@ object AttachmentActor {
   case class AttachmentRequestAdded(email: Email, attachmentRequest: AttachmentRequest)
 }
 
-class AttachmentActor @Inject()(messageService: MessageService) extends Actor with ActorLogging {
+class AttachmentActor @Inject()(implicit exec: ExecutionContext, messageService: MessageService) extends Actor with ActorLogging {
   override def receive: Receive = {
     case AttachmentActor.AttachmentRequestAdded(email, attachmentRequest) =>
       messageService.prepareRequest(email, attachmentRequest)

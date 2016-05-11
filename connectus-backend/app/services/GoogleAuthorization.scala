@@ -16,8 +16,7 @@ import com.google.api.services.gmail.GmailScopes._
 import com.google.common.collect.Lists._
 import common._
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 object GoogleAuthorization {
   val ApplicationName = "Connectus"
@@ -27,7 +26,7 @@ object GoogleAuthorization {
 }
 
 @Singleton
-class GoogleAuthorization @Inject()(appConf: AppConf, dataStoreFactory: AbstractDataStoreFactory) {
+class GoogleAuthorization @Inject()(implicit exec: ExecutionContext, appConf: AppConf, dataStoreFactory: AbstractDataStoreFactory) {
 
   private def loadSecrets: GoogleClientSecrets =
     GoogleClientSecrets.load(GoogleAuthorization.factory, new StringReader(appConf.getGoogleClientSecret))
