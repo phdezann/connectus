@@ -22,11 +22,12 @@ docker run                                                            \
     --rm                                                              \
     -e APPLICATION_FIREBASE_URL=$APPLICATION_FIREBASE_URL             \
     -e APPLICATION_FIREBASE_JWT_TOKEN=$APPLICATION_FIREBASE_JWT_TOKEN \
+    -e SLACK_TOKEN=$SLACK_TOKEN                                       \
     -v $PRIVATE_DIR:/private                                          \
     -v $APP_DIR:/workspace                                            \
     -w /workspace/connectus-android-app                               \
     connectus-build                                                   \
-    /bin/bash -c "upload-release-description && upload-apk-to-dropbox"
+    /bin/bash -c "upload-release-description && upload-apk-to-slack"
 docker run                                             \
     --rm                                               \
     -e HEROKU_SSH_KEY_PATH=/private/id_rsa-ci-4-heroku \

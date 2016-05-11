@@ -49,6 +49,6 @@ ADD bin/init-emulator /usr/local/bin/
 ADD bin/debug-connected-android-test /usr/local/bin/
 ADD bin/deploy-to-heroku /usr/local/bin/
 ADD bin/upload-release-description /usr/local/bin/
-ADD bin/upload-apk-to-dropbox /usr/local/bin/
+ADD bin/upload-apk-to-slack /usr/local/bin/
 
 ADD conf/android-sdk /home/connectus/android-sdk-conf/
