@@ -31,9 +31,7 @@ ENV ANDROID_SDK_HOME ${ANDROID_HOME}
 ENV PATH ${PATH}:${ANDROID_SDK_HOME}/tools:${ANDROID_SDK_HOME}/platform-tools
 RUN ln -s ${ANDROID_SDK_HOME} /opt/android-sdk-linux
 
-RUN wget -q https://dl.bintray.com/sbt/native-packages/sbt/0.13.9/sbt-0.13.9.tgz
-RUN tar xzf sbt-0.13.9.tgz
-RUN rm -f sbt-0.13.9.tgz
+RUN curl -sSL https://dl.bintray.com/sbt/native-packages/sbt/0.13.9/sbt-0.13.9.tgz | tar -xzv
 
 ENV SBT_HOME /opt/sbt
 ENV PATH ${PATH}:${SBT_HOME}/bin

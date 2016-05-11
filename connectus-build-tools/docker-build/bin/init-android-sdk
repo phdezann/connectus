@@ -5,10 +5,7 @@ set -e
 if [ ! -d $ANDROID_SDK_HOME ]; then
 
     cd /data
-    wget -q https://dl.google.com/android/android-sdk_r24.4.1-linux.tgz
-    tar xzf android-sdk_r24.4.1-linux.tgz
-    rm -f android-sdk_r24.4.1-linux.tgz
-
+    curl -sSL https://dl.google.com/android/android-sdk_r24.4.1-linux.tgz | tar -xzv
     accept-all-licence                              \
         android update sdk --all --no-ui --filter   \
         \"                                          \
