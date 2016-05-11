@@ -25,11 +25,11 @@ docker run                               \
     -w /workspace/connectus-backend      \
     connectus-build                      \
     sbt test stage
-docker run                                                \
-    --rm                                                  \
-    --volumes-from connectus-build-cache                  \
-    -e APPLICATION_FIREBASE_URL=$APPLICATION_FIREBASE_URL \
-    -v $APP_DIR:/workspace                                \
-    -w /workspace/connectus-android-app                   \
-    connectus-build                                       \
+docker run                               \
+    --rm                                 \
+    --volumes-from connectus-build-cache \
+    -e CU_FIREBASE_URL=$CU_FIREBASE_URL  \
+    -v $APP_DIR:/workspace               \
+    -w /workspace/connectus-android-app  \
+    connectus-build                      \
     /bin/bash -c "init-android-sdk && init-emulator ~/android-sdk-conf/samsung_galaxy_tab_a/arm.conf && ./gradlew --no-daemon test connectedAndroidTest"

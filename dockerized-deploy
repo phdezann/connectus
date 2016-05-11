@@ -12,21 +12,21 @@ docker run                                                                      
     -e ANDROID_RELEASE_KEY_ALIAS=release                                                               \
     -e ANDROID_RELEASE_KEY_PASSWORD=secret                                                             \
     -e ANDROID_PLAY_PUBLISHER_SERVICE_ACCOUNT_JSON_PATH=/private/connectus-play-publisher-account.json \
-    -e APPLICATION_FIREBASE_URL=$APPLICATION_FIREBASE_URL                                              \
+    -e CU_FIREBASE_URL=$CU_FIREBASE_URL                                                                \
     -v $PRIVATE_DIR:/private                                                                           \
     -v $APP_DIR:/workspace                                                                             \
     -w /workspace/connectus-android-app                                                                \
     connectus-build                                                                                    \
     ./gradlew --no-daemon publishApkRelease
-docker run                                                            \
-    --rm                                                              \
-    -e APPLICATION_FIREBASE_URL=$APPLICATION_FIREBASE_URL             \
-    -e APPLICATION_FIREBASE_JWT_TOKEN=$APPLICATION_FIREBASE_JWT_TOKEN \
-    -e SLACK_TOKEN=$SLACK_TOKEN                                       \
-    -v $PRIVATE_DIR:/private                                          \
-    -v $APP_DIR:/workspace                                            \
-    -w /workspace/connectus-android-app                               \
-    connectus-build                                                   \
+docker run                                          \
+    --rm                                            \
+    -e CU_FIREBASE_URL=$CU_FIREBASE_URL             \
+    -e CU_FIREBASE_JWT_TOKEN=$CU_FIREBASE_JWT_TOKEN \
+    -e SLACK_TOKEN=$SLACK_TOKEN                     \
+    -v $PRIVATE_DIR:/private                        \
+    -v $APP_DIR:/workspace                          \
+    -w /workspace/connectus-android-app             \
+    connectus-build                                 \
     /bin/bash -c "upload-release-description && upload-apk-to-slack"
 docker run                                             \
     --rm                                               \
