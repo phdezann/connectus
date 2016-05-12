@@ -21,6 +21,8 @@ public class ResidentListDialogFragment extends DialogFragment {
     @Inject
     UserRepository userRepository;
 
+    ResidentAdapter adapter;
+
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         ((ConnectusApplication) getActivity().getApplication()).getComponent().inject(this);
@@ -35,7 +37,7 @@ public class ResidentListDialogFragment extends DialogFragment {
         ListView listView = (ListView) dialogLayout.findViewById(R.id.residents);
 
         Firebase ref = new Firebase(FirebaseFacadeConstants.getResidentsUrl(userRepository.getUserEmail()));
-        ResidentAdapter adapter = new ResidentAdapter(getActivity(), Resident.class, R.layout.resident_list_item, ref, residentId);
+        adapter = new ResidentAdapter(getActivity(), Resident.class, R.layout.resident_list_item, ref, residentId);
         listView.setAdapter(adapter);
 
         Button addResidentButton = (Button) dialogLayout.findViewById(R.id.add_resident);
@@ -50,5 +52,11 @@ public class ResidentListDialogFragment extends DialogFragment {
             dismiss();
         });
         return dialog;
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        adapter.cleanup();
     }
 }

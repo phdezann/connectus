@@ -24,6 +24,7 @@ public class MainActivity extends ActivityBase {
 
     ListView messagesListView;
     ProgressDialog taggingProgressDialog;
+    ThreadAdapter adapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,7 +60,7 @@ public class MainActivity extends ActivityBase {
     private void setupThreadAdapter() {
         if (userRepository.isUserLoggedIn()) {
             Firebase ref = new Firebase(FirebaseFacadeConstants.getAdminMessagesUrl(userRepository.getUserEmail()));
-            ThreadAdapter adapter = new ThreadAdapter(this, GmailThread.class, R.layout.thread_list_item_admin, ref);
+            adapter = new ThreadAdapter(this, GmailThread.class, R.layout.thread_list_item_admin, ref);
             messagesListView.setAdapter(adapter);
 
             adapter.registerDataSetObserver(new DataSetObserver() {
@@ -116,5 +117,11 @@ public class MainActivity extends ActivityBase {
                 break;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        adapter.cleanup();
     }
 }

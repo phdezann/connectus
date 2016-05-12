@@ -92,4 +92,10 @@ public class ThreadActivity extends ActivityBase {
         }
         return Optional.absent();
     }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        adapter.cleanup();
+    }
 }

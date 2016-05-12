@@ -45,6 +45,14 @@ public class FirebaseObservableWrappers {
         return hopToIoScheduler(subject);
     }
 
+    public Observable<AuthData> listenAuth(Firebase ref) {
+        ReplaySubject<AuthData> subject = ReplaySubject.create();
+        Firebase.AuthStateListener listener = authData -> subject.onNext(authData);
+        ref.addAuthStateListener(listener);
+        return hopToIoScheduler(subject) //
+                .finallyDo(() -> ref.removeAuthStateListener(listener));
+    }
+
     public Observable<DataSnapshot> read(Firebase ref) {
         ReplaySubject<DataSnapshot> subject = ReplaySubject.create();
         ValueEventListener listener = new ValueEventListener() {
