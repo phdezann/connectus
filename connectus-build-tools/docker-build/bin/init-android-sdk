@@ -25,7 +25,6 @@ if [ ! -d $ANDROID_SDK_HOME ]; then
         doc-23,                                     \
         extra-android-m2repository,                 \
         extra-google-m2repository,                  \
-        extra-android-support,                      \
         extra-google-auto,                          \
         extra-google-google_play_services,          \
         extra-google-play_billing,                  \
