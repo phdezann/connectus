@@ -29,11 +29,12 @@ abstract public class ActivityBase extends AppCompatActivity {
     FirebaseFacade firebaseFacade;
     @Inject
     Toaster toaster;
+    @Inject
+    FirebaseObservableWrappers wrappers;
 
     CompositeSubscription subs = new CompositeSubscription();
     GoogleApiClient googleApiClient;
     Firebase firebaseRef;
-    Firebase.AuthStateListener logoutAuthListener;
     Toolbar toolbar;
     AlertDialog backendStatusDialog;
 
@@ -53,13 +54,14 @@ abstract public class ActivityBase extends AppCompatActivity {
         if (environmentHelper.isNotInTest()) {
             googleApiClient.connect();
             firebaseRef = new Firebase(FirebaseFacadeConstants.getRootUrl());
-            logoutAuthListener = authData -> {
-                if (authData == null || !userRepository.isUserLoggedIn()) {
-                    logout();
-                }
-            };
             if (allActivitiesExceptLogin()) {
-                firebaseRef.addAuthStateListener(logoutAuthListener);
+                subs.add(wrappers.listenAuth(firebaseRef).subscribeOn(Schedulers.io()) //
+                        .observeOn(AndroidSchedulers.mainThread()) //
+                        .subscribe(authData -> {
+                            if (authData == null || !userRepository.isUserLoggedIn()) {
+                                logout();
+                            }
+                        }));
             }
         }
 
@@ -142,7 +144,6 @@ abstract public class ActivityBase extends AppCompatActivity {
     @Override
     public void onDestroy() {
         if (environmentHelper.isNotInTest() && allActivitiesExceptLogin()) {
-            firebaseRef.removeAuthStateListener(logoutAuthListener);
             googleApiClient.disconnect();
         }
         subs.unsubscribe();

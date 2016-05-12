@@ -1,6 +1,8 @@
 package org.connectus;
 
-import com.firebase.client.*;
+import com.firebase.client.AuthData;
+import com.firebase.client.DataSnapshot;
+import com.firebase.client.Firebase;
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -11,19 +13,17 @@ import org.apache.commons.lang3.StringUtils;
 import org.connectus.model.AttachmentFirebaseHttpRequest;
 import org.connectus.support.NoOpObservable.NoOp;
 import rx.Observable;
-import rx.functions.Func1;
-import rx.schedulers.Schedulers;
-import rx.subjects.PublishSubject;
-import rx.subjects.ReplaySubject;
 
 import javax.inject.Inject;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import static org.connectus.support.NoOpObservable.noOp;
 
 public class FirebaseFacade {
+
+    @Inject
+    FirebaseObservableWrappers wrappers;
 
     @Inject
     public FirebaseFacade() {
@@ -52,12 +52,6 @@ public class FirebaseFacade {
     @Getter
     public static class BulkException extends Throwable {
         TokenTradeReport tokenTradeReport;
-    }
-
-    public class FirebaseException extends Throwable {
-        public FirebaseException(Throwable cause) {
-            super(cause);
-        }
     }
 
     public void addResident(String email, String name, String labelName) {
@@ -98,9 +92,9 @@ public class FirebaseFacade {
         Firebase authorizationIdRef = new Firebase(FirebaseFacadeConstants.getAuthorizationIdUrl(authorizationId));
         Firebase reportRef = new Firebase(FirebaseFacadeConstants.getReportUrl(authorizationId));
 
-        return updateChildren(push, values) // push AndroidId and AuthorizationCode to the server
+        return wrappers.updateChildren(push, values) // push AndroidId and AuthorizationCode to the server
                 .flatMap(ignore -> waitForTokenTradeReport(reportRef, FirebaseFacadeConstants.SERVER_PROCESSING_TIMEOUT_IN_SECONDS)) //
-                .flatMap(report -> cleanup(authorizationIdRef).map(noOp -> report)) //
+                .flatMap(report -> wrappers.clear(authorizationIdRef).map(noOp -> report)) //
                 .flatMap(report -> checkErrors(creds, report)) //
                 .map(ignore -> noOp());
     }
@@ -117,7 +111,7 @@ public class FirebaseFacade {
         values.put("content", content);
 
         Firebase newOutboxMessage = ref.push();
-        return updateChildren(newOutboxMessage, values);
+        return wrappers.updateChildren(newOutboxMessage, values);
     }
 
     public Observable<List<AttachmentFirebaseHttpRequest>> getAttachmentRequests(String email, String messageId) {
@@ -129,9 +123,9 @@ public class FirebaseFacade {
         Firebase requestRef = ref.child("requests");
         Firebase responseRef = ref.child("responses");
 
-        return updateChildren(requestRef, values) //
+        return wrappers.updateChildren(requestRef, values) //
                 .flatMap(ignore -> waitForAttachmentRequests(responseRef, FirebaseFacadeConstants.SERVER_PROCESSING_TIMEOUT_IN_SECONDS)) //
-                .flatMap(response -> cleanup(requestRef).flatMap(noOp -> cleanup(responseRef)) //
+                .flatMap(response -> wrappers.clear(requestRef).flatMap(noOp -> wrappers.clear(responseRef)) //
                         .map(noOp -> response));
     }
 
@@ -147,90 +141,26 @@ public class FirebaseFacade {
 
     public Observable<Boolean> isRefreshTokenAvailable(String email) {
         Firebase refreshTokenRef = new Firebase(FirebaseFacadeConstants.getRefreshTokenUrl(encode(email)));
-        return readOnce(refreshTokenRef).map(value -> value != null);
-    }
-
-    private Observable<NoOp> cleanup(Firebase ref) {
-        ReplaySubject<NoOp> subject = ReplaySubject.create();
-        ref.removeValue((firebaseError, firebase) -> {
-            if (firebaseError == null) {
-                subject.onNext(noOp());
-                subject.onCompleted();
-            } else {
-                subject.onError(firebaseError.toException());
-            }
-        });
-        return hopToIoScheduler(subject);
+        return wrappers.read(refreshTokenRef).map(value -> value != null);
     }
 
     public Observable<String> publishedVersion() {
-        ReplaySubject<String> subject = ReplaySubject.create();
         Firebase firebase = new Firebase(FirebaseFacadeConstants.getPublishedVersionName());
-        firebase.addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                subject.onNext((String) dataSnapshot.getValue());
-            }
-
-            @Override
-            public void onCancelled(FirebaseError firebaseError) {
-                subject.onError(new FirebaseException(firebaseError.toException()));
-            }
-        });
-        return hopToIoScheduler(subject);
+        return wrappers.listen(firebase).map(dataSnapshot -> (String) dataSnapshot.getValue());
     }
 
     public Observable<String> backendStatus() {
-        ReplaySubject<String> subject = ReplaySubject.create();
         Firebase firebase = new Firebase(FirebaseFacadeConstants.getBackendStatus());
-        firebase.addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                subject.onNext((String) dataSnapshot.getValue());
-            }
-
-            @Override
-            public void onCancelled(FirebaseError firebaseError) {
-                subject.onError(new FirebaseException(firebaseError.toException()));
-            }
-        });
-        return hopToIoScheduler(subject);
+        return wrappers.listen(firebase).map(dataSnapshot -> (String) dataSnapshot.getValue());
     }
 
     public Observable<AuthData> loginWithGoogle(AccessToken token) {
-        ReplaySubject<AuthData> subject = ReplaySubject.create();
         Firebase firebase = new Firebase(FirebaseFacadeConstants.getRootUrl());
-        firebase.authWithOAuthToken(FirebaseFacadeConstants.OAUTH_GOOGLE_PROVIDER, token.value, new Firebase.AuthResultHandler() {
-
-            @Override
-            public void onAuthenticated(AuthData authData) {
-                subject.onNext(authData);
-                subject.onCompleted();
-            }
-
-            @Override
-            public void onAuthenticationError(FirebaseError firebaseError) {
-                subject.onError(new FirebaseException(firebaseError.toException()));
-            }
-        });
-        return hopToIoScheduler(subject);
-    }
-
-    private Observable<NoOp> updateChildren(Firebase ref, Map<String, Object> values) {
-        PublishSubject<NoOp> subject = PublishSubject.create();
-        ref.updateChildren(values, (firebaseError, firebase) -> {
-            if (firebaseError != null) {
-                subject.onError(new FirebaseException(firebaseError.toException()));
-            } else {
-                subject.onNext(noOp());
-            }
-            subject.onCompleted();
-        });
-        return hopToIoScheduler(subject);
+        return wrappers.authWithOAuthToken(firebase, FirebaseFacadeConstants.OAUTH_GOOGLE_PROVIDER, token.value);
     }
 
     private Observable<TokenTradeReport> waitForTokenTradeReport(Firebase ref, long timeoutInSeconds) {
-        return readResponse(ref, snapshot -> {
+        return wrappers.listen(ref, snapshot -> {
             Object codeValue = snapshot.child(FirebaseFacadeConstants.CODE_PATH).getValue();
             Object messageValue = snapshot.child(FirebaseFacadeConstants.MESSAGE_PATH).getValue();
             if (codeValue != null) {
@@ -242,7 +172,7 @@ public class FirebaseFacade {
     }
 
     private Observable<List<AttachmentFirebaseHttpRequest>> waitForAttachmentRequests(Firebase ref, long timeoutInSeconds) {
-        return readResponse(ref, snapshot -> {
+        return wrappers.listen(ref, snapshot -> {
             if (snapshot.getValue() == null) {
                 return Optional.absent();
             }
@@ -255,53 +185,6 @@ public class FirebaseFacade {
             }
             return Optional.of(requests);
         }, timeoutInSeconds);
-    }
-
-    private <T> Observable<T> readResponse(Firebase ref, Func1<DataSnapshot, Optional<T>> parser, long timeoutInSeconds) {
-        PublishSubject<T> subject = PublishSubject.create();
-        ValueEventListener listener = new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                Optional<T> value = parser.call(dataSnapshot);
-                if (value.isPresent()) {
-                    subject.onNext(value.get());
-                    subject.onCompleted();
-                }
-            }
-
-            @Override
-            public void onCancelled(FirebaseError firebaseError) {
-                subject.onError(new FirebaseException(firebaseError.toException()));
-            }
-        };
-        ref.addValueEventListener(listener);
-        return hopToIoScheduler(subject) //
-                .finallyDo(() -> ref.removeEventListener(listener)) //
-                .timeout(timeoutInSeconds, TimeUnit.SECONDS);
-    }
-
-    private Observable<String> readOnce(Firebase ref) {
-        PublishSubject<String> subject = PublishSubject.create();
-        ref.addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                subject.onNext((String) dataSnapshot.getValue());
-                subject.onCompleted();
-            }
-
-            @Override
-            public void onCancelled(FirebaseError firebaseError) {
-                subject.onError(new FirebaseException(firebaseError.toException()));
-            }
-        });
-        return hopToIoScheduler(subject);
-    }
-
-    /**
-     * The Firebase SDK uses the Android main thread for its callbacks therefore we need to hop to another thread to perform the downstream reactive chain.
-     */
-    private <T> Observable<T> hopToIoScheduler(Observable<T> obs) {
-        return obs.observeOn(Schedulers.io());
     }
 
     public static String encode(String email) {

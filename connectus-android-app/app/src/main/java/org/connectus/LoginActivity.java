@@ -9,7 +9,6 @@ import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.Toolbar;
-import com.firebase.client.Firebase;
 import com.google.android.gms.auth.UserRecoverableAuthException;
 import com.google.android.gms.auth.api.Auth;
 import com.google.android.gms.auth.api.signin.GoogleSignInResult;
@@ -17,6 +16,7 @@ import com.google.common.base.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.connectus.support.NoOpObservable;
 import rx.Observable;
+import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
 
@@ -38,7 +38,7 @@ public class LoginActivity extends ActivityBase {
     LoginOrchestrator loginOrchestrator;
 
     boolean currentlySigningUp;
-    Firebase.AuthStateListener loginAuthListener;
+    Subscription authSubscription;
     ProgressDialog loginProgressDialog;
 
     @Override
@@ -171,21 +171,21 @@ public class LoginActivity extends ActivityBase {
     }
 
     private void startListeningForLogin() {
-        loginAuthListener = authData -> {
-            if (authData != null) {
-                onLoginSuccess();
-            }
-            stopListeningForLogin();
-        };
-
         if (environmentHelper.isNotInTest()) {
-            firebaseRef.addAuthStateListener(loginAuthListener);
+            authSubscription = wrappers.listenAuth(firebaseRef).subscribeOn(Schedulers.io()) //
+                    .observeOn(AndroidSchedulers.mainThread()) //
+                    .subscribe(authData -> {
+                        if (authData != null) {
+                            onLoginSuccess();
+                        }
+                        stopListeningForLogin();
+                    });
         }
     }
 
     private void stopListeningForLogin() {
         if (environmentHelper.isNotInTest()) {
-            firebaseRef.removeAuthStateListener(loginAuthListener);
+            authSubscription.unsubscribe();
         }
     }
 }
