@@ -139,7 +139,7 @@ public class Repository {
 
     public Observable<Boolean> isRefreshTokenAvailable(String email) {
         Firebase refreshTokenRef = new Firebase(getRefreshTokenUrl(encode(email)));
-        return wrappers.read(refreshTokenRef).map(value -> value != null);
+        return wrappers.read(refreshTokenRef).map(value -> value.getValue() != null);
     }
 
     public Observable<String> publishedVersion() {
