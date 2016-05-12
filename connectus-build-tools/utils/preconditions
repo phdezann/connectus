@@ -1,0 +1,35 @@
+#!/bin/bash
+
+function checkArgs() {
+    if [ "$1" -ne 2 ]; then
+        echo "Illegal number of parameters"
+        return 1
+    fi
+}
+
+function printError() {
+    echo "$1"
+    return 1
+}
+
+function checkUrl() {
+    local URL_REGEX='^https://\S*$'
+    checkArgs "$#"
+    [[ "$1" =~ $URL_REGEX ]] || printError "$2"
+}
+
+function checkNotBlank() {
+    checkArgs "$#"
+    [[ ! -z $"${1// }" ]] || printError "$2"
+}
+
+function checkDir() {
+    checkArgs "$#"
+    [[ -d "$1" ]] || printError "$2"
+}
+
+function checkDockerVersion() {
+    local INSTALLED_VERSION=$(docker version --format '{{.Server.Version}}')
+    checkArgs "$#"
+    [[ $1 == "$INSTALLED_VERSION" ]] || printError "$2"
+}

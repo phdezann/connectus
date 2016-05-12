@@ -1,8 +1,15 @@
 #!/bin/bash
 set -e
+source connectus-build-tools/utils/preconditions
 
 APP_DIR=${APP_DIR:-$(pwd)}
 PRIVATE_DIR=${PRIVATE_DIR:-$(pwd)/.private}
+
+checkDockerVersion "1.10.3" "Only version 1.10.3 of Docker is supported"
+checkDir "$APP_DIR" "APP_DIR must reference the app directory"
+checkUrl "$CU_FIREBASE_URL" "CU_FIREBASE_URL must reference a valid Firebase app URL"
+checkNotBlank "$CU_FIREBASE_JWT_TOKEN" "CU_FIREBASE_JWT_TOKEN must contain a token for accessing the Firebase database"
+checkNotBlank "$SLACK_TOKEN" "SLACK_TOKEN must contain an access token for accessing Slack"
 
 docker run                                                                                             \
     --rm                                                                                               \
