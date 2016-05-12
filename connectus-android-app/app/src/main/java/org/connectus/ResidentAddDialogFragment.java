@@ -16,7 +16,7 @@ public class ResidentAddDialogFragment extends DialogFragment {
     UserRepository userRepository;
 
     @Inject
-    FirebaseFacade firebaseFacade;
+    Repository repository;
 
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {

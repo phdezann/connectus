@@ -25,7 +25,7 @@ public class LoginActivityTest extends RobolectricTestBase {
     @Inject
     GoogleAuthUtilWrapper googleAuthUtilWrapper;
     @Inject
-    FirebaseFacade firebaseFacade;
+    Repository repository;
     @Inject
     Toaster toaster;
     @Inject
@@ -96,8 +96,8 @@ public class LoginActivityTest extends RobolectricTestBase {
 
         @Provides
         @Singleton
-        public FirebaseFacade provideFirebaseFacade() {
-            return Mockito.mock(FirebaseFacade.class);
+        public Repository provideFirebaseFacade() {
+            return Mockito.mock(Repository.class);
         }
 
         @Provides

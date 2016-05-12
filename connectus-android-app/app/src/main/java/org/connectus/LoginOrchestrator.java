@@ -20,7 +20,7 @@ public class LoginOrchestrator {
     @Inject
     AccountManagerUtil accountManagerUtil;
     @Inject
-    FirebaseFacade firebaseFacade;
+    Repository repository;
     @Inject
     UserRepository userRepository;
 
@@ -44,14 +44,14 @@ public class LoginOrchestrator {
          */
         return firebaseLogin(email).timeout(FirebaseFacadeConstants.LOGIN_TIMEOUT_IN_SECONDS, TimeUnit.SECONDS, firebaseLogin(email)) //
                 .flatMap(authData -> persistUserInfo(authData)) //
-                .flatMap(authData -> firebaseFacade.isRefreshTokenAvailable(email)) //
+                .flatMap(authData -> repository.isRefreshTokenAvailable(email)) //
                 .flatMap(refreshTokenAvailable -> refreshTokenAvailable ? justNoOp() : firstPassSetupOfflineAccess(email));
     }
 
     protected Observable<AuthData> firebaseLogin(String email) {
         return accountManagerUtil.findAccount(email) //
                 .flatMap(account -> googleAuthUtilWrapper.getAccessToken(account)) //
-                .flatMap(accessToken -> firebaseFacade.loginWithGoogle(accessToken));
+                .flatMap(accessToken -> repository.loginWithGoogle(accessToken));
     }
 
     protected Observable<NoOp> firstPassSetupOfflineAccess(String email) {
@@ -60,7 +60,7 @@ public class LoginOrchestrator {
                         googleAuthUtilWrapper.getAndroidId(account), //
                         googleAuthUtilWrapper.getAuthorizationCode(account), //
                         (androidId, token) -> new LoginCredentials(androidId, token))) //
-                .flatMap(creds -> firebaseFacade.sendCredentials(creds)) //
+                .flatMap(creds -> repository.sendCredentials(creds)) //
                 .retryWhen(expiredAuthorizationCode());
     }
 
@@ -68,15 +68,15 @@ public class LoginOrchestrator {
         return accountManagerUtil.findAccount(email) //
                 .flatMap(account -> googleAuthUtilWrapper.getAndroidId(account)) //
                 .map(androidId -> new LoginCredentials(androidId, authToken)) //
-                .flatMap(creds -> firebaseFacade.sendCredentials(creds));
+                .flatMap(creds -> repository.sendCredentials(creds));
     }
 
     // this gives one chance to obtain a new authorization code if an ExpiredAuthorizationCodeException has been thrown
     private Func1<Observable<? extends Throwable>, Observable<?>> expiredAuthorizationCode() {
         return attempts -> attempts.zipWith(Observable.range(1, 2), (n, i) -> n) //
                 .flatMap(n -> {
-                    if (n instanceof FirebaseFacade.ExpiredAuthorizationCodeException) {
-                        String authorizationCode = ((FirebaseFacade.ExpiredAuthorizationCodeException) n).getAuthorizationCode();
+                    if (n instanceof Repository.ExpiredAuthorizationCodeException) {
+                        String authorizationCode = ((Repository.ExpiredAuthorizationCodeException) n).getAuthorizationCode();
                         return googleAuthUtilWrapper.clearToken(authorizationCode);
                     } else {
                         return Observable.error(n);

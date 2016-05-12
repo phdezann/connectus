@@ -26,7 +26,7 @@ public class LoginOrchestratorTest extends RobolectricTestBase {
     @Inject
     GoogleAuthUtilWrapper googleAuthUtilWrapper;
     @Inject
-    FirebaseFacade firebaseFacade;
+    Repository repository;
     @Inject
     LoginOrchestrator loginOrchestrator;
     @Inject
@@ -60,7 +60,7 @@ public class LoginOrchestratorTest extends RobolectricTestBase {
         Mockito.when(accountManagerUtil.findAccount(Mockito.any())).thenReturn(Observable.just(new Account(Constants.FAKE_GMAIL_COM, AccountManagerUtil.GOOGLE_ACCOUNT_TYPE)));
         Mockito.when(googleAuthUtilWrapper.getAndroidId(Mockito.any())).thenReturn(Observable.just(Constants.FAKE_ANDROID_ID));
         Mockito.when(googleAuthUtilWrapper.getAuthorizationCode(Mockito.any())).thenReturn(Observable.just(Constants.FAKE_AUTHORIZATION_CODE));
-        Mockito.when(firebaseFacade.sendCredentials(Mockito.any())).thenReturn(NoOpObservable.justNoOp());
+        Mockito.when(repository.sendCredentials(Mockito.any())).thenReturn(NoOpObservable.justNoOp());
 
         NoOpObservable.NoOp single = loginOrchestrator.firstPassSetupOfflineAccess(Constants.FAKE_GMAIL_COM).toBlocking().single();
         assertThat(single).isEqualTo(NoOpObservable.noOp());
@@ -72,13 +72,13 @@ public class LoginOrchestratorTest extends RobolectricTestBase {
         Mockito.when(googleAuthUtilWrapper.getAndroidId(Mockito.any())).thenReturn(Observable.just(Constants.FAKE_ANDROID_ID));
         Mockito.when(googleAuthUtilWrapper.getAuthorizationCode(Mockito.any())).thenReturn(Observable.just(Constants.FAKE_AUTHORIZATION_CODE));
         Mockito.when(googleAuthUtilWrapper.clearToken(Mockito.any())).thenReturn(NoOpObservable.justNoOp());
-        Mockito.when(firebaseFacade.sendCredentials(Mockito.any())) //
-                .thenReturn(Observable.error(new FirebaseFacade.ExpiredAuthorizationCodeException(new FirebaseFacade.TokenTradeReport("FAKE_ERROR_CODE", Optional.absent()), Constants.FAKE_AUTHORIZATION_CODE))) //
+        Mockito.when(repository.sendCredentials(Mockito.any())) //
+                .thenReturn(Observable.error(new Repository.ExpiredAuthorizationCodeException(new Repository.TokenTradeReport("FAKE_ERROR_CODE", Optional.absent()), Constants.FAKE_AUTHORIZATION_CODE))) //
                 .thenReturn(NoOpObservable.justNoOp());
 
         NoOpObservable.NoOp single = loginOrchestrator.firstPassSetupOfflineAccess(Constants.FAKE_GMAIL_COM).toBlocking().single();
 
-        Mockito.verify(firebaseFacade, Mockito.times(2)).sendCredentials(Mockito.any());
+        Mockito.verify(repository, Mockito.times(2)).sendCredentials(Mockito.any());
         Mockito.verify(googleAuthUtilWrapper).clearToken(Mockito.any());
         assertThat(single).isEqualTo(NoOpObservable.noOp());
     }
@@ -100,8 +100,8 @@ public class LoginOrchestratorTest extends RobolectricTestBase {
 
         @Provides
         @Singleton
-        public FirebaseFacade provideFirebaseFacade() {
-            return Mockito.mock(FirebaseFacade.class);
+        public Repository provideFirebaseFacade() {
+            return Mockito.mock(Repository.class);
         }
 
         @Provides

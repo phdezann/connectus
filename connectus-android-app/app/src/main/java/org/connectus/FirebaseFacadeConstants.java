@@ -48,19 +48,19 @@ public class FirebaseFacadeConstants {
     }
 
     public static String getAdminMessagesUrl(String email) {
-        return String.format("%s/messages/%s/admin/inbox", getRootUrl(), FirebaseFacade.encode(email));
+        return String.format("%s/messages/%s/admin/inbox", getRootUrl(), Repository.encode(email));
     }
 
     public static String getResidentMessagesUrl(String email, String residentId) {
-        return String.format("%s/messages/%s/%s/inbox", getRootUrl(), FirebaseFacade.encode(email), residentId);
+        return String.format("%s/messages/%s/%s/inbox", getRootUrl(), Repository.encode(email), residentId);
     }
 
     public static String getResidentMessagesOfThreadUrl(String email, String residentId, String threadId) {
-        return String.format("%s/messages/%s/%s/threads/%s", getRootUrl(), FirebaseFacade.encode(email), residentId, threadId);
+        return String.format("%s/messages/%s/%s/threads/%s", getRootUrl(), Repository.encode(email), residentId, threadId);
     }
 
     public static String getResidentsUrl(String email) {
-        return String.format("%s/residents/%s", getRootUrl(), FirebaseFacade.encode(email));
+        return String.format("%s/residents/%s", getRootUrl(), Repository.encode(email));
     }
 
     public static String getContactsUrl(String encodedEmail) {
@@ -68,10 +68,10 @@ public class FirebaseFacadeConstants {
     }
 
     public static String getOutboxUrl(String email) {
-        return String.format("%s/outbox/%s", getRootUrl(), FirebaseFacade.encode(email));
+        return String.format("%s/outbox/%s", getRootUrl(), Repository.encode(email));
     }
 
     public static String getAttachmentRequestUrl(String email) {
-        return String.format("%s/attachments/%s", getRootUrl(), FirebaseFacade.encode(email));
+        return String.format("%s/attachments/%s", getRootUrl(), Repository.encode(email));
     }
 }

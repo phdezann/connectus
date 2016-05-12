@@ -20,13 +20,13 @@ import java.util.Map;
 
 import static org.connectus.support.NoOpObservable.noOp;
 
-public class FirebaseFacade {
+public class Repository {
 
     @Inject
     FirebaseObservableWrappers wrappers;
 
     @Inject
-    public FirebaseFacade() {
+    public Repository() {
     }
 
     @AllArgsConstructor
@@ -68,13 +68,13 @@ public class FirebaseFacade {
         if (previousResidentIdOpt.isPresent()) {
             String previousResidentId = previousResidentIdOpt.get();
             if (!previousResidentId.equals(residentId)) {
-                values.put(residentId + "/" + FirebaseFacade.encode(emailOfContact), "Active");
-                values.put(previousResidentId + "/" + FirebaseFacade.encode(emailOfContact), null);
+                values.put(residentId + "/" + Repository.encode(emailOfContact), "Active");
+                values.put(previousResidentId + "/" + Repository.encode(emailOfContact), null);
             } else {
-                values.put(residentId + "/" + FirebaseFacade.encode(emailOfContact), null);
+                values.put(residentId + "/" + Repository.encode(emailOfContact), null);
             }
         } else {
-            values.put(residentId + "/" + FirebaseFacade.encode(emailOfContact), "Active");
+            values.put(residentId + "/" + Repository.encode(emailOfContact), "Active");
         }
         ref.updateChildren(values);
     }
@@ -129,13 +129,13 @@ public class FirebaseFacade {
                         .map(noOp -> response));
     }
 
-    private Observable<FirebaseFacade.TokenTradeReport> checkErrors(LoginOrchestrator.LoginCredentials creds, FirebaseFacade.TokenTradeReport tokenTradeReport) {
+    private Observable<Repository.TokenTradeReport> checkErrors(LoginOrchestrator.LoginCredentials creds, Repository.TokenTradeReport tokenTradeReport) {
         if (StringUtils.equals(tokenTradeReport.code, FirebaseFacadeConstants.LOGIN_CODE_SUCCESS)) {
             return Observable.just(tokenTradeReport);
         } else if (StringUtils.equals(tokenTradeReport.code, FirebaseFacadeConstants.LOGIN_CODE_INVALID_GRANT)) {
-            return Observable.error(new FirebaseFacade.ExpiredAuthorizationCodeException(tokenTradeReport, creds.getAuthorizationCode()));
+            return Observable.error(new Repository.ExpiredAuthorizationCodeException(tokenTradeReport, creds.getAuthorizationCode()));
         } else {
-            return Observable.error(new FirebaseFacade.BulkException(tokenTradeReport));
+            return Observable.error(new Repository.BulkException(tokenTradeReport));
         }
     }
 

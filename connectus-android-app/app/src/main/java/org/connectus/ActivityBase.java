@@ -26,7 +26,7 @@ abstract public class ActivityBase extends AppCompatActivity {
     @Inject
     UserRepository userRepository;
     @Inject
-    FirebaseFacade firebaseFacade;
+    Repository repository;
     @Inject
     Toaster toaster;
     @Inject
@@ -66,7 +66,7 @@ abstract public class ActivityBase extends AppCompatActivity {
         }
 
         if (environmentHelper.isReleaseBuildType()) {
-            Observable<String> publishedVersionObs = firebaseFacade.publishedVersion();
+            Observable<String> publishedVersionObs = repository.publishedVersion();
             subs.add(publishedVersionObs.subscribeOn(Schedulers.io()) //
                     .observeOn(AndroidSchedulers.mainThread()) //
                     .subscribe(publishedVersion -> {
@@ -75,7 +75,7 @@ abstract public class ActivityBase extends AppCompatActivity {
                         }
                     }));
 
-            Observable<String> backendStatusObs = firebaseFacade.backendStatus();
+            Observable<String> backendStatusObs = repository.backendStatus();
             subs.add(backendStatusObs.subscribeOn(Schedulers.io()) //
                     .observeOn(AndroidSchedulers.mainThread()) //
                     .subscribe(backendStatus -> {

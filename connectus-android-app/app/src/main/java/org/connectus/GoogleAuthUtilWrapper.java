@@ -57,11 +57,11 @@ public class GoogleAuthUtilWrapper {
         });
     }
 
-    public Observable<FirebaseFacade.AccessToken> getAccessToken(Account account) {
+    public Observable<Repository.AccessToken> getAccessToken(Account account) {
         return Observable.create(s -> {
             try {
                 String token = GoogleAuthUtil.getToken(context, account, accessTokenScope);
-                s.onNext(new FirebaseFacade.AccessToken(token));
+                s.onNext(new Repository.AccessToken(token));
                 s.onCompleted();
             } catch (IOException e) {
                 s.onError(e);

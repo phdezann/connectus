@@ -28,16 +28,16 @@ public class MessageAdapter extends FirebaseListAdapter<GmailMessage> {
     DateFormatter dateFormatter;
 
     private Activity activity;
-    private FirebaseFacade firebaseFacade;
+    private Repository repository;
     private UserRepository userRepository;
     private String threadId;
 
-    public MessageAdapter(Activity activity, Class<GmailMessage> modelClass, Firebase ref, UserRepository userRepository, FirebaseFacade firebaseFacade, String threadId) {
+    public MessageAdapter(Activity activity, Class<GmailMessage> modelClass, Firebase ref, UserRepository userRepository, Repository repository, String threadId) {
         super(activity, modelClass, 0, ref);
         ((ConnectusApplication) activity.getApplication()).getComponent().inject(this);
         this.activity = activity;
         this.userRepository = userRepository;
-        this.firebaseFacade = firebaseFacade;
+        this.repository = repository;
         this.threadId = threadId;
     }
 
@@ -90,7 +90,7 @@ public class MessageAdapter extends FirebaseListAdapter<GmailMessage> {
 
         if (!gmailMessage.getAttachments().isEmpty()) {
             recyclerView.setVisibility(View.VISIBLE);
-            Observable<List<AttachmentFirebaseHttpRequest>> requests = firebaseFacade.getAttachmentRequests(userRepository.getUserEmail(), messageId);
+            Observable<List<AttachmentFirebaseHttpRequest>> requests = repository.getAttachmentRequests(userRepository.getUserEmail(), messageId);
             requests.subscribeOn(Schedulers.io()) //
                     .observeOn(AndroidSchedulers.mainThread()) //
                     .subscribe(ar -> {

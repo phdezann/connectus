@@ -48,12 +48,12 @@ public class MainActivity extends ActivityBase {
     }
 
     public void addResidentAndAddContact(String residentName) {
-        firebaseFacade.addResident(userRepository.getUserEmail(), residentName, Resident.deriveLabelName(residentName));
+        repository.addResident(userRepository.getUserEmail(), residentName, Resident.deriveLabelName(residentName));
     }
 
     public void onAddContact(String emailOfContact, String residentId, Optional<String> previousBoundResidentId) {
         taggingProgressDialog.show();
-        firebaseFacade.updateContact(userRepository.getUserEmail(), residentId, emailOfContact, previousBoundResidentId);
+        repository.updateContact(userRepository.getUserEmail(), residentId, emailOfContact, previousBoundResidentId);
     }
 
     private void setupThreadAdapter() {
