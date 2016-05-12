@@ -14,10 +14,9 @@ public class FirebaseFacadeConstants {
     public static String URL_PATH = "url";
     public static String ACCESS_TOKEN_PATH = "accessToken";
     public static String MIME_TYPE_PATH = "mimeType";
-
-    public static String RESIDENT_ID_PROPERTY = "id";
-    public static String RESIDENT_NAME_PROPERTY = "name";
-    public static String RESIDENT_LABEL_NAME_PROPERTY = "labelName";
+    public static String DEFAULT_VALUE = "Active";
+    public static String ATTACHMENT_REQUESTS = "requests";
+    public static String ATTACHMENT_RESPONSES = "responses";
 
     public static String getRootUrl() {
         return BuildConfig.FIREBASE_ROOT_URL;
