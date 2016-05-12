@@ -34,8 +34,7 @@ public class ResidentListDialogFragment extends DialogFragment {
         builder.setView(dialogLayout);
         ListView listView = (ListView) dialogLayout.findViewById(R.id.residents);
 
-        String encode = FirebaseFacade.encode(userRepository.getUserEmail());
-        Firebase ref = new Firebase(FirebaseFacadeConstants.getResidentsUrl(encode));
+        Firebase ref = new Firebase(FirebaseFacadeConstants.getResidentsUrl(userRepository.getUserEmail()));
         ResidentAdapter adapter = new ResidentAdapter(getActivity(), Resident.class, R.layout.resident_list_item, ref, residentId);
         listView.setAdapter(adapter);
 

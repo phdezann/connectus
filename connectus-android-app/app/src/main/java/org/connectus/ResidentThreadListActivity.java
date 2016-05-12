@@ -38,7 +38,7 @@ public class ResidentThreadListActivity extends ActivityBase {
 
         toolbar.setTitle(String.format(getString(R.string.inbox_of), residentName));
 
-        Firebase ref = new Firebase(FirebaseFacadeConstants.getResidentMessagesUrl(FirebaseFacade.encode(userRepository.getUserEmail()), residentId));
+        Firebase ref = new Firebase(FirebaseFacadeConstants.getResidentMessagesUrl(userRepository.getUserEmail(), residentId));
         ThreadAdapter adapter = new ThreadAdapter(this, GmailThread.class, R.layout.thread_list_item, ref);
         messagesListView.setAdapter(adapter);
 

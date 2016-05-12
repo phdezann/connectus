@@ -90,7 +90,7 @@ public class MessageAdapter extends FirebaseListAdapter<GmailMessage> {
 
         if (!gmailMessage.getAttachments().isEmpty()) {
             recyclerView.setVisibility(View.VISIBLE);
-            Observable<List<AttachmentFirebaseHttpRequest>> requests = firebaseFacade.getAttachmentRequests(FirebaseFacade.encode(userRepository.getUserEmail()), messageId);
+            Observable<List<AttachmentFirebaseHttpRequest>> requests = firebaseFacade.getAttachmentRequests(userRepository.getUserEmail(), messageId);
             requests.subscribeOn(Schedulers.io()) //
                     .observeOn(AndroidSchedulers.mainThread()) //
                     .subscribe(ar -> {

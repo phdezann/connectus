@@ -47,31 +47,31 @@ public class FirebaseFacadeConstants {
         return String.format("%s/users/%s/refresh_token", getRootUrl(), encodedEmail);
     }
 
-    public static String getAdminMessagesUrl(String encodedEmail) {
-        return String.format("%s/messages/%s/admin/inbox", getRootUrl(), encodedEmail);
+    public static String getAdminMessagesUrl(String email) {
+        return String.format("%s/messages/%s/admin/inbox", getRootUrl(), FirebaseFacade.encode(email));
     }
 
-    public static String getResidentMessagesUrl(String encodedEmail, String residentId) {
-        return String.format("%s/messages/%s/%s/inbox", getRootUrl(), encodedEmail, residentId);
+    public static String getResidentMessagesUrl(String email, String residentId) {
+        return String.format("%s/messages/%s/%s/inbox", getRootUrl(), FirebaseFacade.encode(email), residentId);
     }
 
-    public static String getResidentMessagesOfThreadUrl(String encodedEmail, String residentId, String threadId) {
-        return String.format("%s/messages/%s/%s/threads/%s", getRootUrl(), encodedEmail, residentId, threadId);
+    public static String getResidentMessagesOfThreadUrl(String email, String residentId, String threadId) {
+        return String.format("%s/messages/%s/%s/threads/%s", getRootUrl(), FirebaseFacade.encode(email), residentId, threadId);
     }
 
-    public static String getResidentsUrl(String encodedEmail) {
-        return String.format("%s/residents/%s", getRootUrl(), encodedEmail);
+    public static String getResidentsUrl(String email) {
+        return String.format("%s/residents/%s", getRootUrl(), FirebaseFacade.encode(email));
     }
 
     public static String getContactsUrl(String encodedEmail) {
         return String.format("%s/contacts/%s", getRootUrl(), encodedEmail);
     }
 
-    public static String getOutboxUrl(String encodedEmail) {
-        return String.format("%s/outbox/%s", getRootUrl(), encodedEmail);
+    public static String getOutboxUrl(String email) {
+        return String.format("%s/outbox/%s", getRootUrl(), FirebaseFacade.encode(email));
     }
 
-    public static String getAttachmentRequestUrl(String encodedEmail) {
-        return String.format("%s/attachments/%s", getRootUrl(), encodedEmail);
+    public static String getAttachmentRequestUrl(String email) {
+        return String.format("%s/attachments/%s", getRootUrl(), FirebaseFacade.encode(email));
     }
 }

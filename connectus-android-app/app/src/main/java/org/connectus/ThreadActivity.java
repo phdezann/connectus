@@ -54,7 +54,7 @@ public class ThreadActivity extends ActivityBase {
 
         toolbar.setTitle(String.format(getString(R.string.thread_with), contactEmail));
 
-        Firebase ref = new Firebase(FirebaseFacadeConstants.getResidentMessagesOfThreadUrl(FirebaseFacade.encode(userRepository.getUserEmail()), residentId, threadId));
+        Firebase ref = new Firebase(FirebaseFacadeConstants.getResidentMessagesOfThreadUrl(userRepository.getUserEmail(), residentId, threadId));
         adapter = new MessageAdapter(this, GmailMessage.class, ref, userRepository, firebaseFacade, threadId);
         messagesListView.setAdapter(adapter);
 
@@ -73,7 +73,7 @@ public class ThreadActivity extends ActivityBase {
             String content = messageEditText.getText().toString();
             String personal = item.getResidentOpt().transform(r -> r.getName()).or("");
 
-            subs.add(firebaseFacade.addOutboxMessage(FirebaseFacade.encode(userRepository.getUserEmail()), residentId, to, threadId, personal, subject, content) //
+            subs.add(firebaseFacade.addOutboxMessage(userRepository.getUserEmail(), residentId, to, threadId, personal, subject, content) //
                     .observeOn(AndroidSchedulers.mainThread()) //
                     .subscribe(noOp -> finish(), e -> {
                         e.printStackTrace();

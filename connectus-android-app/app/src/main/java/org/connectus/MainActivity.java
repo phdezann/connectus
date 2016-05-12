@@ -58,7 +58,7 @@ public class MainActivity extends ActivityBase {
 
     private void setupThreadAdapter() {
         if (userRepository.isUserLoggedIn()) {
-            Firebase ref = new Firebase(FirebaseFacadeConstants.getAdminMessagesUrl(FirebaseFacade.encode(userRepository.getUserEmail())));
+            Firebase ref = new Firebase(FirebaseFacadeConstants.getAdminMessagesUrl(userRepository.getUserEmail()));
             ThreadAdapter adapter = new ThreadAdapter(this, GmailThread.class, R.layout.thread_list_item_admin, ref);
             messagesListView.setAdapter(adapter);
 
