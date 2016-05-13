@@ -29,4 +29,6 @@
     <string name="login_progress_dialog_message">Connexion...</string>
     <string name="tagging_progress_dialog_message">Synchronisation des libellés et des messages en cours...</string>
     <string name="resident_name">Nom du résident</string>
+    <string name="write_reply">Ecrivez votre réponse</string>
+    <string name="reply">Répondre</string>
 </resources>

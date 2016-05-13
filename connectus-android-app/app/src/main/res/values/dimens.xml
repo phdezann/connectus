@@ -4,4 +4,6 @@
     <dimen name="activity_vertical_margin">16dp</dimen>
     <dimen name="resident_msg_size">24dp</dimen>
     <dimen name="resident_reply_size">40dp</dimen>
+    <dimen name="standard_margin">25dp</dimen>
+    <dimen name="standard_padding">25dp</dimen>
 </resources>

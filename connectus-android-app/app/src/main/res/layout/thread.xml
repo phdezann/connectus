@@ -14,27 +14,41 @@
         android:id="@+id/list_view_message"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="6" />
+        android:layout_weight="1" />
+
+    <Button
+        android:id="@+id/reply_btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_margin="@dimen/standard_margin"
+        android:padding="@dimen/standard_padding"
+        android:text="@string/reply"
+        android:textSize="@dimen/resident_msg_size" />
 
     <LinearLayout
         android:id="@+id/reply_layout"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:background="@color/indigo_100">
+        android:visibility="gone">
 
         <EditText
             android:id="@+id/message_edit"
             android:layout_width="0dp"
             android:layout_height="match_parent"
+            android:layout_margin="@dimen/standard_margin"
             android:layout_weight="5"
+            android:hint="@string/write_reply"
             android:textSize="@dimen/resident_reply_size" />
 
         <Button
             android:id="@+id/send_btn"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_margin="@dimen/standard_margin"
+            android:padding="@dimen/standard_padding"
             android:text="@string/send"
             android:textSize="@dimen/resident_msg_size" />
     </LinearLayout>

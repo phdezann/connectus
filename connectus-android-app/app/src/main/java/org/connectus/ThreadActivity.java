@@ -22,6 +22,7 @@ public class ThreadActivity extends ActivityBase {
     public static final String RESIDENT_ID_ARG = "residentId";
     public static final String THREAD_ID_ARG = "threadId";
     public static final String CONTACT_EMAIL_ARG = "contactEmail";
+    private static final String REPLY_LAYOUT_OPENED = "replyLayoutOpened";
 
     @Inject
     UserRepository userRepository;
@@ -33,6 +34,7 @@ public class ThreadActivity extends ActivityBase {
     MessageAdapter adapter;
     ListView messagesListView;
     Optional<GmailMessage> inboundMessage = Optional.absent();
+    boolean replyLayoutOpened;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,6 +42,7 @@ public class ThreadActivity extends ActivityBase {
         ((ConnectusApplication) getApplication()).getComponent().inject(this);
         setContentView(R.layout.thread);
 
+        Button reply_btn = (Button) findViewById(R.id.reply_btn);
         LinearLayout replyLayout = (LinearLayout) findViewById(R.id.reply_layout);
         EditText messageEditText = (EditText) findViewById(R.id.message_edit);
         Button sendButton = (Button) findViewById(R.id.send_btn);
@@ -53,6 +56,16 @@ public class ThreadActivity extends ActivityBase {
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayShowTitleEnabled(false);
 
+        if (savedInstanceState != null) {
+            replyLayoutOpened = savedInstanceState.getBoolean(REPLY_LAYOUT_OPENED);
+        }
+
+        reply_btn.setOnClickListener(view -> {
+            replyLayoutOpened = true;
+            updateReplyLayout(reply_btn, replyLayout);
+        });
+        updateReplyLayout(reply_btn, replyLayout);
+
         toolbar.setTitle(String.format(getString(R.string.thread_with), contactEmail));
 
         Firebase ref = new Firebase(FirebaseFacadeConstants.getResidentMessagesOfThreadUrl(userRepository.getUserEmail(), residentId, threadId));
@@ -64,7 +77,6 @@ public class ThreadActivity extends ActivityBase {
             @Override
             public void onChanged() {
                 inboundMessage = findInboundMessage();
-                replyLayout.setVisibility(inboundMessage.isPresent() ? View.VISIBLE : View.INVISIBLE);
             }
         });
 
@@ -82,6 +94,22 @@ public class ThreadActivity extends ActivityBase {
                         toaster.toast("Error: " + Throwables.getStackTraceAsString(e));
                     }));
         });
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle savedInstanceState) {
+        savedInstanceState.putBoolean(REPLY_LAYOUT_OPENED, replyLayoutOpened);
+        super.onSaveInstanceState(savedInstanceState);
+    }
+
+    private void updateReplyLayout(Button reply_btn, LinearLayout replyLayout) {
+        if (replyLayoutOpened) {
+            reply_btn.setVisibility(View.GONE);
+            replyLayout.setVisibility(View.VISIBLE);
+        } else {
+            reply_btn.setVisibility(View.VISIBLE);
+            replyLayout.setVisibility(View.GONE);
+        }
     }
 
     private Optional<GmailMessage> findInboundMessage() {
