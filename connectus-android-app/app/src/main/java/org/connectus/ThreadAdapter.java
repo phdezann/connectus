@@ -3,7 +3,7 @@ package org.connectus;
 import android.app.Activity;
 import android.view.View;
 import android.widget.TextView;
-import com.firebase.client.Firebase;
+import com.firebase.client.Query;
 import com.firebase.ui.FirebaseListAdapter;
 import com.google.common.base.Optional;
 import org.connectus.model.GmailThread;
@@ -16,8 +16,8 @@ public class ThreadAdapter extends FirebaseListAdapter<GmailThread> {
     @Inject
     DateFormatter dateFormatter;
 
-    public ThreadAdapter(Activity activity, Class<GmailThread> modelClass, int modelLayout, Firebase ref) {
-        super(activity, modelClass, modelLayout, ref);
+    public ThreadAdapter(Activity activity, Class<GmailThread> modelClass, int modelLayout, Query query) {
+        super(activity, modelClass, modelLayout, query);
         ((ConnectusApplication) activity.getApplication()).getComponent().inject(this);
     }
 

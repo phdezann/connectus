@@ -11,6 +11,8 @@ public class FirebaseFacadeConstants {
     public static String AUTHORIZATION_CODE_PATH = "authorization_code";
     public static String CODE_PATH = "code";
     public static String MESSAGE_PATH = "message";
+    public static String THREAD_REVERSE_DATE_PATH = "lastMessage/reverseDate";
+    public static String MESSAGE_DATE_PATH = "date";
     public static String URL_PATH = "url";
     public static String ACCESS_TOKEN_PATH = "accessToken";
     public static String MIME_TYPE_PATH = "mimeType";

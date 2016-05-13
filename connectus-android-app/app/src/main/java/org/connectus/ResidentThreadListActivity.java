@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
 import android.widget.ListView;
 import com.firebase.client.Firebase;
+import com.firebase.client.Query;
 import com.google.common.base.Optional;
 import org.connectus.model.GmailThread;
 import org.connectus.model.Resident;
@@ -40,7 +41,8 @@ public class ResidentThreadListActivity extends ActivityBase {
         toolbar.setTitle(String.format(getString(R.string.inbox_of), residentName));
 
         Firebase ref = new Firebase(FirebaseFacadeConstants.getResidentMessagesUrl(userRepository.getUserEmail(), residentId));
-        adapter = new ThreadAdapter(this, GmailThread.class, R.layout.thread_list_item, ref);
+        Query orderByDate = ref.orderByChild(FirebaseFacadeConstants.THREAD_REVERSE_DATE_PATH);
+        adapter = new ThreadAdapter(this, GmailThread.class, R.layout.thread_list_item, orderByDate);
         messagesListView.setAdapter(adapter);
 
         messagesListView.setOnItemClickListener((parent, view, position, id) -> {

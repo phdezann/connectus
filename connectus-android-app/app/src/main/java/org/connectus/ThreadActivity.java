@@ -9,6 +9,7 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import com.firebase.client.Firebase;
+import com.firebase.client.Query;
 import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import org.connectus.model.GmailMessage;
@@ -55,7 +56,8 @@ public class ThreadActivity extends ActivityBase {
         toolbar.setTitle(String.format(getString(R.string.thread_with), contactEmail));
 
         Firebase ref = new Firebase(FirebaseFacadeConstants.getResidentMessagesOfThreadUrl(userRepository.getUserEmail(), residentId, threadId));
-        adapter = new MessageAdapter(this, GmailMessage.class, ref, userRepository, repository, threadId);
+        Query orderByDate = ref.orderByChild(FirebaseFacadeConstants.MESSAGE_DATE_PATH);
+        adapter = new MessageAdapter(this, GmailMessage.class, orderByDate, userRepository, repository, threadId);
         messagesListView.setAdapter(adapter);
 
         adapter.registerDataSetObserver(new DataSetObserver() {

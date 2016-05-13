@@ -1,20 +1,18 @@
 package services
 
 import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
 import javax.inject.{Inject, Singleton}
 
-import conf.AppConf
-import com.firebase.client.{DataSnapshot, Firebase}
+import com.firebase.client.DataSnapshot
 import com.google.api.client.auth.oauth2.TokenResponseException
 import com.google.common.base.Throwables
 import common._
+import conf.AppConf
 import model.{AttachmentRequest, Contact, GmailLabel, GmailMessage, InternetAddress, OutboxMessage, Resident, ThreadBundle}
-import org.apache.commons.lang3.StringUtils
 import play.api.Logger
 import services.AccountInitializer.TradeSuccess
-import services.Repository.{AuthorizationCodes, MessagesSnapshot, UserCredential}
 import services.FirebaseConstants._
+import services.Repository.{AuthorizationCodes, MessagesSnapshot, UserCredential}
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable.TreeMap
@@ -45,11 +43,9 @@ object FirebaseConstants {
 }
 
 object Util {
-  def foldToBlank[T](option: Option[T], f: T => String): String = option.fold[String]("")(f)
-  def formatDateWithIsoFormatter(date: ZonedDateTime): String = {
-    def removeZonedIdIfAny(date: String) = StringUtils.substringBefore(date, "[")
-    removeZonedIdIfAny(date.format(DateTimeFormatter.ISO_ZONED_DATE_TIME))
-  }
+  def foldToBlank[T](option: Option[T], folder: T => String): String = foldTo(option, folder, "")
+  def foldToZero[T](option: Option[T], folder: T => Long): Long = foldTo(option, folder, 0)
+  def foldTo[T, K](option: Option[T], folder: T => K, defaultValue: K): K = option.fold[K](defaultValue)(folder)
   def encode(email: Email) = email.replace('.', ',')
   def decode(email: Email) = email.replace(',', '.')
 }
@@ -278,7 +274,9 @@ class Repository @Inject()(implicit exec: ExecutionContext, firebaseFutureWrappe
       }.fold(Map[String, AnyRef](s"$messagePath/resident" -> null))(identity)
     val messagesAsMap = Map(
       s"$messagePath/from" -> Util.foldToBlank[InternetAddress](message.from, _.address),
-      s"$messagePath/date" -> Util.foldToBlank[ZonedDateTime](message.date, Util.formatDateWithIsoFormatter(_)),
+      s"$messagePath/date" -> Long.box(Util.foldToZero[ZonedDateTime](message.date, _.toInstant.toEpochMilli)),
+      // this is handy to do a descending sort with a Firebase query
+      s"$messagePath/reverseDate" -> Long.box(Util.foldToZero[ZonedDateTime](message.date, Long.MaxValue - _.toInstant.toEpochMilli)),
       s"$messagePath/subject" -> Util.foldToBlank[String](message.subject, identity),
       s"$messagePath/content" -> Util.foldToBlank[String](message.content, identity))
     labelsAsMap ++ labelsDeletionsAsMap ++ attachmentsAsMap ++ residentAsMap ++ messagesAsMap

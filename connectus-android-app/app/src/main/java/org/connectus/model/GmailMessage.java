@@ -5,8 +5,6 @@ import com.google.common.collect.Maps;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.joda.time.DateTime;
-import org.joda.time.format.DateTimeFormatter;
-import org.joda.time.format.ISODateTimeFormat;
 
 import java.util.Map;
 
@@ -16,14 +14,14 @@ public class GmailMessage {
     String from;
     String subject;
     String content;
-    String date;
+    long date;
+    long reverseDate;
     Resident resident;
     Map<String, String> labels = Maps.newHashMap();
     Map<String, GmailAttachment> attachments = Maps.newHashMap();
 
     public DateTime getParsedDate() {
-        DateTimeFormatter parser = ISODateTimeFormat.dateTimeParser();
-        return parser.parseDateTime(date);
+        return new DateTime(date);
     }
 
     public Optional<Resident> getResidentOpt() {

@@ -9,6 +9,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.ListView;
 import com.firebase.client.Firebase;
+import com.firebase.client.Query;
 import com.google.common.base.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.connectus.model.GmailThread;
@@ -60,7 +61,8 @@ public class MainActivity extends ActivityBase {
     private void setupThreadAdapter() {
         if (userRepository.isUserLoggedIn()) {
             Firebase ref = new Firebase(FirebaseFacadeConstants.getAdminMessagesUrl(userRepository.getUserEmail()));
-            adapter = new ThreadAdapter(this, GmailThread.class, R.layout.thread_list_item_admin, ref);
+            Query orderByDate = ref.orderByChild(FirebaseFacadeConstants.THREAD_REVERSE_DATE_PATH);
+            adapter = new ThreadAdapter(this, GmailThread.class, R.layout.thread_list_item_admin, orderByDate);
             messagesListView.setAdapter(adapter);
 
             adapter.registerDataSetObserver(new DataSetObserver() {

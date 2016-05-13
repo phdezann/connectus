@@ -7,6 +7,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 import com.firebase.client.Firebase;
+import com.firebase.client.Query;
 import com.firebase.ui.FirebaseListAdapter;
 import com.google.common.collect.FluentIterable;
 import org.apache.commons.lang3.StringUtils;
@@ -32,8 +33,8 @@ public class MessageAdapter extends FirebaseListAdapter<GmailMessage> {
     private UserRepository userRepository;
     private String threadId;
 
-    public MessageAdapter(Activity activity, Class<GmailMessage> modelClass, Firebase ref, UserRepository userRepository, Repository repository, String threadId) {
-        super(activity, modelClass, 0, ref);
+    public MessageAdapter(Activity activity, Class<GmailMessage> modelClass, Query query, UserRepository userRepository, Repository repository, String threadId) {
+        super(activity, modelClass, 0, query);
         ((ConnectusApplication) activity.getApplication()).getComponent().inject(this);
         this.activity = activity;
         this.userRepository = userRepository;
