@@ -141,6 +141,18 @@ abstract public class ActivityBase extends AppCompatActivity {
         finish();
     }
 
+    protected void setupToolbar() {
+        toolbar = (Toolbar) findViewById(R.id.toolbar);
+        toolbar.setTitleTextAppearance(this, R.style.Toolbar);
+        setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayShowTitleEnabled(false);
+    }
+
+    protected void largeToolbar() {
+        toolbar.setTitleTextAppearance(this, R.style.LargeToolbar);
+        toolbar.setMinimumHeight(getResources().getDimensionPixelSize(R.dimen.large_toolbar_height));
+    }
+
     @Override
     public void onDestroy() {
         if (environmentHelper.isNotInTest() && allActivitiesExceptLogin()) {

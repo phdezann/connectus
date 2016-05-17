@@ -6,4 +6,5 @@
     <dimen name="resident_reply_size">40dp</dimen>
     <dimen name="standard_margin">25dp</dimen>
     <dimen name="standard_padding">25dp</dimen>
+    <dimen name="large_toolbar_height">100dp</dimen>
 </resources>

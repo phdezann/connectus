@@ -2,7 +2,6 @@ package org.connectus;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.support.v7.widget.Toolbar;
 import android.widget.ListView;
 import com.firebase.client.Firebase;
 import com.firebase.client.Query;
@@ -34,9 +33,8 @@ public class ResidentThreadListActivity extends ActivityBase {
 
         messagesListView = (ListView) findViewById(R.id.list_view_message);
 
-        toolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-        getSupportActionBar().setDisplayShowTitleEnabled(false);
+        setupToolbar();
+        largeToolbar();
 
         toolbar.setTitle(String.format(getString(R.string.inbox_of), residentName));
 

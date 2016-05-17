@@ -8,4 +8,12 @@
         <item name="colorAccent">@color/colorAccent</item>
     </style>
 
+    <style name="Toolbar" parent="@style/Base.TextAppearance.AppCompat.Title">
+        <item name="android:textColor">@color/white</item>
+    </style>
+
+    <style name="LargeToolbar" parent="Toolbar">
+        <item name="android:textSize">40sp</item>
+    </style>
+
 </resources>

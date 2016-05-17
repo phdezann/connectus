@@ -2,7 +2,6 @@ package org.connectus;
 
 import android.database.DataSetObserver;
 import android.os.Bundle;
-import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -52,9 +51,8 @@ public class ThreadActivity extends ActivityBase {
         String contactEmail = getIntent().getStringExtra(CONTACT_EMAIL_ARG);
         messagesListView = (ListView) findViewById(R.id.list_view_message);
 
-        toolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-        getSupportActionBar().setDisplayShowTitleEnabled(false);
+        setupToolbar();
+        largeToolbar();
 
         if (savedInstanceState != null) {
             replyLayoutOpened = savedInstanceState.getBoolean(REPLY_LAYOUT_OPENED);

@@ -8,7 +8,6 @@ import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
-import android.support.v7.widget.Toolbar;
 import com.google.android.gms.auth.UserRecoverableAuthException;
 import com.google.android.gms.auth.api.Auth;
 import com.google.android.gms.auth.api.signin.GoogleSignInResult;
@@ -48,10 +47,7 @@ public class LoginActivity extends ActivityBase {
         setContentView(R.layout.login);
         findViewById(R.id.login_with_google).setOnClickListener(view -> onSignInGooglePressed());
 
-        toolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-        getSupportActionBar().setDisplayShowTitleEnabled(false);
-
+        setupToolbar();
         toolbar.setTitle(R.string.app_name);
 
         loginProgressDialog = new ProgressDialog(this);

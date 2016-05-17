@@ -4,7 +4,6 @@ import android.app.ProgressDialog;
 import android.content.Intent;
 import android.database.DataSetObserver;
 import android.os.Bundle;
-import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.ListView;
@@ -33,9 +32,7 @@ public class MainActivity extends ActivityBase {
         ((ConnectusApplication) getApplication()).getComponent().inject(this);
         setContentView(R.layout.main);
 
-        toolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-        getSupportActionBar().setDisplayShowTitleEnabled(false);
+        setupToolbar();
 
         toolbar.setTitle(userRepository.getUserEmail());
         toolbar.setSubtitle(R.string.admin_view);
