@@ -20,6 +20,7 @@ import static org.connectus.PicassoBuilder.MIME_TYPE_QUERY_PARAM;
 @NoArgsConstructor
 public class AttachmentHttpAdapter extends RecyclerView.Adapter<AttachmentHttpAdapter.ListItemViewHolder> {
 
+    Activity activity;
     @Inject
     Picasso picasso;
 
@@ -29,6 +30,7 @@ public class AttachmentHttpAdapter extends RecyclerView.Adapter<AttachmentHttpAd
 
     public AttachmentHttpAdapter(Activity activity, String threadId, String messageId) {
         ((ConnectusApplication) activity.getApplication()).getComponent().inject(this);
+        this.activity = activity;
         this.threadId = threadId;
         this.messageId = messageId;
     }
@@ -50,7 +52,7 @@ public class AttachmentHttpAdapter extends RecyclerView.Adapter<AttachmentHttpAd
         AttachmentFirebaseHttpRequest model = items.get(position);
         String url = String.format("%s?%s=%s&%s=%s", model.getUrl(), ACCESS_TOKEN_QUERY_PARAM, model.getAccessToken(), MIME_TYPE_QUERY_PARAM, model.getMimeType());
         String key = String.format("%s-%s-%s", threadId, messageId, position);
-        picasso.load(url).stableKey(key).fit().into(viewHolder.img);
+        picasso.load(url).stableKey(key).resizeDimen(R.dimen.attachment_width, R.dimen.attachment_height).centerInside().into(viewHolder.img);
     }
 
     @Override
