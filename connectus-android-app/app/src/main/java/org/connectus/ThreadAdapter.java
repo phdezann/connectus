@@ -23,7 +23,7 @@ public class ThreadAdapter extends FirebaseListAdapter<GmailThread> {
 
     @Override
     protected void populateView(View view, GmailThread thread, int position) {
-        TextView id = (TextView) view.findViewById(R.id.id);
+        TextView id = (TextView) view.findViewById(R.id.thread_id);
         TextView lastModification = (TextView) view.findViewById(R.id.last_modification);
         TextView snippet = (TextView) view.findViewById(R.id.snippet);
         TextView resident = (TextView) view.findViewById(R.id.resident);

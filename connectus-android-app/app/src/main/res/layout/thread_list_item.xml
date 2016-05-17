@@ -2,7 +2,8 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal">
+    android:orientation="horizontal"
+    android:padding="15dp">
 
     <LinearLayout
         android:layout_width="0dp"
@@ -15,6 +16,7 @@
             android:id="@+id/last_modification"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:textColor="@color/date"
             android:textSize="@dimen/resident_msg_size" />
 
         <TextView
@@ -26,7 +28,7 @@
     </LinearLayout>
 
     <TextView
-        android:id="@+id/id"
+        android:id="@+id/thread_id"
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="2"
