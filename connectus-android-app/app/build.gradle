@@ -117,12 +117,14 @@ project.afterEvaluate {
 }
 
 final DAGGER_VERSION = '2.0.2'
+final BUILD_TOOL_VERSION = '23.3.0'
+final EXPRESSO_VERSION = '2.2.1'
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar']),
-            'com.android.support:appcompat-v7:23.3.0',
-            'com.android.support:recyclerview-v7:23.3.0',
-            'com.android.support:support-v13:23.3.0',
+            "com.android.support:appcompat-v7:${BUILD_TOOL_VERSION}",
+            "com.android.support:recyclerview-v7:${BUILD_TOOL_VERSION}",
+            "com.android.support:support-v13:${BUILD_TOOL_VERSION}",
             'com.google.android.gms:play-services-auth:8.3.0',
             'joda-time:joda-time:2.8.1',
             'com.google.guava:guava:18.0',
@@ -148,16 +150,16 @@ dependencies {
 
     provided 'org.projectlombok:lombok:1.16.4'
 
-    compile 'com.android.support:support-annotations:23.3.0'
-    testCompile 'com.android.support:support-annotations:23.3.0'
+    compile "com.android.support:support-annotations:${BUILD_TOOL_VERSION}"
+    testCompile "com.android.support:support-annotations:${BUILD_TOOL_VERSION}"
 
-    androidTestCompile 'com.android.support:support-annotations:23.3.0',
+    androidTestCompile "com.android.support:support-annotations:${BUILD_TOOL_VERSION}",
             'com.android.support.test:runner:0.4.1',
             'com.android.support.test:rules:0.4.1',
-            'com.android.support.test.espresso:espresso-core:2.2.1',
-            'com.android.support.test.espresso:espresso-idling-resource:2.2.1',
+            "com.android.support.test.espresso:espresso-core:${EXPRESSO_VERSION}",
+            "com.android.support.test.espresso:espresso-idling-resource:${EXPRESSO_VERSION}",
             'com.google.dexmaker:dexmaker-mockito:1.2'
-    androidTestCompile('com.android.support.test.espresso:espresso-contrib:2.2.1') {
+    androidTestCompile("com.android.support.test.espresso:espresso-contrib:${EXPRESSO_VERSION}") {
         exclude module: 'support-v4'
         exclude module: 'recyclerview-v7'
     }
