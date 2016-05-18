@@ -5,7 +5,7 @@ set -e
 if [ ! -d $ANDROID_SDK_HOME ]; then
 
     cd /data
-    curl -sSL https://dl.google.com/android/android-sdk_r24.4.1-linux.tgz | tar -xzv
+    curl -fsSL https://dl.google.com/android/android-sdk_r24.4.1-linux.tgz | tar -xzv
     accept-all-licence                              \
         android update sdk --all --no-ui --filter   \
         \"                                          \

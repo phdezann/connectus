@@ -2,7 +2,7 @@
 
 APK_FILENAME=$(jq -r '"connectus-\(.config.versionName).apk"' app/release-description.txt)
 
-curl https://slack.com/api/files.upload            \
+curl -f https://slack.com/api/files.upload         \
     -F file=@app/build/outputs/apk/app-release.apk \
     -F filename=$APK_FILENAME                      \
     -F channels=#general                           \
