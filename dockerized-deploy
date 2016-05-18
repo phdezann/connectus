@@ -25,6 +25,14 @@ docker run                                                                      
     -w /workspace/connectus-android-app                                                                \
     connectus-build                                                                                    \
     ./gradlew --no-daemon publishApkRelease
+docker run                                             \
+    --rm                                               \
+    -e HEROKU_SSH_KEY_PATH=/private/id_rsa-ci-4-heroku \
+    -v $PRIVATE_DIR:/private                           \
+    -v $APP_DIR:/workspace                             \
+    -w /workspace/connectus-backend                    \
+    connectus-build                                    \
+    deploy-to-heroku
 docker run                                          \
     --rm                                            \
     -e CU_FIREBASE_URL=$CU_FIREBASE_URL             \
@@ -35,11 +43,3 @@ docker run                                          \
     -w /workspace/connectus-android-app             \
     connectus-build                                 \
     /bin/bash -c "upload-release-description && upload-apk-to-slack"
-docker run                                             \
-    --rm                                               \
-    -e HEROKU_SSH_KEY_PATH=/private/id_rsa-ci-4-heroku \
-    -v $PRIVATE_DIR:/private                           \
-    -v $APP_DIR:/workspace                             \
-    -w /workspace/connectus-backend                    \
-    connectus-build                                    \
-    deploy-to-heroku
