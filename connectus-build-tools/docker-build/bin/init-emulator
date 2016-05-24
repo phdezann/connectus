@@ -18,7 +18,7 @@ function wait-for-lock-screen {
     local PS_OUTPUT=$(adb shell ps)
     echo "'adb shell ps' result:"
     echo "$PS_OUTPUT"
-    if echo "$PS_OUTPUT" | grep com.android.music &> /dev/null
+    if echo "$PS_OUTPUT" | grep com.android.mms &> /dev/null
     then
       break
     fi
