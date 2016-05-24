@@ -13,10 +13,17 @@ function create-avd {
 
 function wait-for-lock-screen {
   echo "Waiting for the android operating system to initialize itself"
-  while ! adb shell ps 2> /dev/null | grep com.android.music &> /dev/null
+  while true
   do
-    sleep 5
+    local PS_OUTPUT=$(adb shell ps)
+    echo "'adb shell ps' result:"
+    echo "$PS_OUTPUT"
+    if echo "$PS_OUTPUT" | grep com.android.music &> /dev/null
+    then
+      break
+    fi
     echo "."
+    sleep 5
   done
   echo "The emulator is now fully initialized"
 }
