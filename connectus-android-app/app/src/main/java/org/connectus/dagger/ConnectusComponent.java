@@ -24,4 +24,6 @@ public interface ConnectusComponent {
     void inject(MessageAdapter messageAdapter);
 
     void inject(ThreadAdapter threadAdapter);
+
+    void inject(MessageDialogFragment messageDialogFragment);
 }

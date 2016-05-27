@@ -1,10 +1,13 @@
 package org.connectus;
 
 import android.app.Activity;
+import android.app.FragmentTransaction;
+import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import com.firebase.client.Firebase;
 import com.firebase.client.Query;
@@ -72,6 +75,7 @@ public class MessageAdapter extends FirebaseListAdapter<GmailMessage> {
 
     @Override
     protected void populateView(View view, GmailMessage gmailMessage, int position) {
+        LinearLayout itemLayout = (LinearLayout) view.findViewById(R.id.item_layout);
         TextView from = (TextView) view.findViewById(R.id.from);
         TextView date = (TextView) view.findViewById(R.id.date);
         TextView content = (TextView) view.findViewById(R.id.content);
@@ -79,6 +83,7 @@ public class MessageAdapter extends FirebaseListAdapter<GmailMessage> {
         from.setText(gmailMessage.getFrom());
         date.setText(dateFormatter.toPrettyString(gmailMessage.getParsedDate()));
         content.setText(StringUtils.abbreviate(gmailMessage.getContent(), 50));
+        itemLayout.setOnClickListener(v -> showMessageDialog(gmailMessage.getContent()));
 
         Firebase ref = getRef(position);
         String messageId = ref.getKey();
@@ -100,5 +105,15 @@ public class MessageAdapter extends FirebaseListAdapter<GmailMessage> {
                         attachmentArrayAdapter.notifyDataSetChanged();
                     });
         }
+    }
+
+    public void showMessageDialog(String content) {
+        MessageDialogFragment newFragment = new MessageDialogFragment();
+        Bundle args = new Bundle();
+        args.putString(MessageDialogFragment.MESSAGE_CONTENT, content);
+        newFragment.setArguments(args);
+        FragmentTransaction transaction = activity.getFragmentManager().beginTransaction();
+        transaction.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN);
+        transaction.add(android.R.id.content, newFragment).addToBackStack(null).commit();
     }
 }
