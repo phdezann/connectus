@@ -3,7 +3,9 @@ package org.connectus;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.database.DataSetObserver;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.ListView;
@@ -111,6 +113,9 @@ public class MainActivity extends ActivityBase {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
+            case R.id.app_info:
+                showApplicationDetails();
+                break;
             case R.id.logout:
                 logout();
                 break;
@@ -122,5 +127,13 @@ public class MainActivity extends ActivityBase {
     public void onDestroy() {
         super.onDestroy();
         adapter.cleanup();
+    }
+
+    private void showApplicationDetails() {
+        Intent intent = new Intent();
+        intent.setAction(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+        Uri uri = Uri.fromParts("package", getPackageName(), null);
+        intent.setData(uri);
+        startActivity(intent);
     }
 }
