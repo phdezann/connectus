@@ -17,6 +17,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:layout_margin="@dimen/standard_margin"
+        android:background="@color/indigo_200"
         android:padding="@dimen/standard_padding"
         android:text="@string/reply"
         android:textSize="@dimen/resident_msg_size" />
@@ -43,6 +44,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:layout_margin="@dimen/standard_margin"
+            android:background="@color/indigo_200"
             android:padding="@dimen/standard_padding"
             android:text="@string/send"
             android:textSize="@dimen/resident_msg_size" />
