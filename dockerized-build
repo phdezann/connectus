@@ -6,7 +6,7 @@ USER_UID=${USER_UID:-$(id -u)}
 USER_GID=${USER_GID:-$(id -g)}
 APP_DIR=${APP_DIR:-$(pwd)}
 
-checkDockerVersion "1.10.3" "Only version 1.10.3 of Docker is supported"
+checkDockerVersion "1.12.0" "Only version 1.12.0 of Docker is supported"
 checkDir "$APP_DIR" "APP_DIR must reference the app directory"
 checkUrl "$CU_FIREBASE_URL" "CU_FIREBASE_URL must reference a valid Firebase app URL"
 
