@@ -1,6 +1,6 @@
 Connectus is an initiative leveraging the Gmail API to create a messaging Android application specifically designed for elderly people in homes.
 
-More information on http://connectus.website/
+More information on https://phdezann.github.io/connectus
 
 ## Build
 
